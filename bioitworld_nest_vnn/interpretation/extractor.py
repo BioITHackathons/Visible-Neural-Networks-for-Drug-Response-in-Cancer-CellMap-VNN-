@@ -74,6 +74,16 @@ def extract_patients(study_id: str, label: str, limit: int = None) -> list[dict]
     signed_z_path = out_dir / "annotation" / "patient_gene_signed_z.txt"
     gene_dir_df = pd.read_csv(signed_z_path, sep="\t", index_col="cell_id") if signed_z_path.exists() else None
 
+    term_mz_path = out_dir / "annotation" / "patient_term_mean_z.txt"
+    term_mz_df = pd.read_csv(term_mz_path, sep="\t", index_col="cell_id") if term_mz_path.exists() else None
+
+    gene_scores_path = ann_dir / "gene_scores.txt"
+    pop_gene_rho: dict[str, float] = {}
+    if gene_scores_path.exists():
+        gs_df = pd.read_csv(gene_scores_path, sep="\t")
+        if "gene" in gs_df.columns and "rho" in gs_df.columns:
+            pop_gene_rho = dict(zip(gs_df["gene"], gs_df["rho"]))
+
     prob_path = out_dir / "metrics" / "predict_probabilities.txt"
     probs = np.loadtxt(prob_path).flatten() if prob_path.exists() else None
 
@@ -121,6 +131,20 @@ def extract_patients(study_id: str, label: str, limit: int = None) -> list[dict]
                 cell2row[parts[1]] = int(parts[0])
 
     # ── Helpers ─────────────────────────────────────────────────────────────
+    def _term_has_direction(pid: str, term: str) -> bool:
+        if term_mz_df is None or term not in term_mz_df.columns or pid not in term_mz_df.index:
+            return False
+        mz = float(term_mz_df.loc[pid, term])
+        p_rho = float(rlipp_pop.loc[term, "p_rho"]) if term in rlipp_pop.index else 0.0
+        return abs(mz) >= 0.2 and abs(p_rho) >= 0.1
+
+    def _gene_has_direction(pid: str, gene: str) -> bool:
+        if gene_dir_df is None or gene not in gene_dir_df.columns or pid not in gene_dir_df.index:
+            return False
+        sz = float(gene_dir_df.loc[pid, gene])
+        rho = pop_gene_rho.get(gene, 0.0)
+        return abs(sz) >= 0.5 and abs(rho) >= 0.1
+
     def _denorm(pid: str, col: str) -> float | str | None:
         if col not in train_df.columns or pid not in train_df.index:
             return None
@@ -157,9 +181,10 @@ def extract_patients(study_id: str, label: str, limit: int = None) -> list[dict]
         prob = float(probs[i]) if probs is not None and i < len(probs) else 0.5
         pred_class = "high_risk" if prob >= 0.5 else "low_risk"
 
-        # Top 3 NeSTs by absolute importance score
+        # Top 3 NeSTs with a clear outcome direction, ranked by absolute importance
         pt_terms = term_imp.loc[pid].dropna()
-        top3_nest_ids = pt_terms.abs().nlargest(3).index.tolist()
+        directed_terms = pt_terms[[t for t in pt_terms.index if _term_has_direction(pid, t)]]
+        top3_nest_ids = directed_terms.abs().nlargest(3).index.tolist()
 
         nest_records = []
         for rank, nest_id in enumerate(top3_nest_ids, 1):
@@ -174,10 +199,11 @@ def extract_patients(study_id: str, label: str, limit: int = None) -> list[dict]
 
             rep_genes = nest_rep_genes.get(nest_id, [])[:5]
 
-            # Top 3 patient genes within this NEST's gene set
+            # Top 3 patient genes with a clear outcome direction, within this NEST's gene set
             candidate_genes = [g for g in gene_imp.columns if g in set(rep_genes)] or list(gene_imp.columns)
             pt_gene_scores = gene_imp.loc[pid, candidate_genes].dropna()
-            top3_genes = pt_gene_scores.abs().nlargest(3).index.tolist()
+            directed_genes = pt_gene_scores[[g for g in pt_gene_scores.index if _gene_has_direction(pid, g)]]
+            top3_genes = directed_genes.abs().nlargest(3).index.tolist()
 
             gene_records = []
             for grank, gene in enumerate(top3_genes, 1):
