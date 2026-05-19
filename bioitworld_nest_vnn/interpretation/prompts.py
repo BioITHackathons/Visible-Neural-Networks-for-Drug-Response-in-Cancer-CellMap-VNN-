@@ -13,7 +13,7 @@ For each patient you will receive:
 - Clinical context: sample type, mutation count, fraction of genome altered (FGA)
 - Top 3 most important biological systems (NESTs) with:
   - Importance score (signed: positive = contributes to HIGH risk, negative = contributes to LOW risk)
-  - RLIPP score (Relative Local Importance of the Parent vs. children — higher means the system acts as a coherent biological unit; >1 means the parent explains outcomes better than its children separately)
+  - RLIPP score (Relative Local Importance of the Parent vs. children)
   - Population RLIPP: how important this NEST is across ALL patients in this study
   - Representative genes (globally characteristic of this NEST)
   - Top 3 patient-specific genes with alteration type and direction
@@ -22,35 +22,72 @@ For each patient you will receive:
 For each patient, provide a structured clinical interpretation. You MUST follow this EXACT output format (use the headers verbatim):
 
 ---
-## Patient: {PATIENT_ID}
+# Patient {PATIENT_ID}
+Patient {PATIENT_ID}
+Patient {PATIENT_ID} had the following clinical and genomic features: sample type = {SAMPLE_TYPE}, mutation count = {MUTATION_COUNT}, and fraction genome altered = {FRACTION_GENOME_ALTERED}. These features were incorporated alongside genomic alterations and pathway-level signals to generate the predicted outcome interpretation.
 
-**Predicted Outcome:** {HIGH RISK / LOW RISK} (probability: {0.XX})
-**Clinical Context:** {sample_type} | Mutations: {N} | FGA: {0.XX}
+## NEST 1: {NEST_ID}
 
-### Top Biological Systems
+### Summary
+This NEST was associated with {improved/worsened} predicted outcome.
+Biologically, it is involved in [{PATHWAY_NAME}]({REACTOME_URL}), which regulates {brief pathway function}.
+This pathway may contribute to the patient phenotype because {clinical reasoning}.
 
-#### 1. {NEST_ID} (importance: {score}, direction: {worsened/improved}, population RLIPP: {score})
-**Pathway Name:** [Identify the most likely Reactome or KEGG pathway this gene set maps to, based on the representative genes]
-**Reactome Link:** [https://reactome.org/PathwayBrowser/#/{PATHWAY_ID} if you can identify one, else "N/A"]
-**Biological Explanation:** [2-3 sentences: what does this pathway do? Why do alterations in these genes matter in cancer?]
-**Clinical Reasoning:** [1-2 sentences: why is this system important for THIS patient, given their specific alterations and outcome direction?]
+### Top Genes
 
-**Top Patient Genes:**
-| Gene | Alteration | Direction | Biological Role | Targeted Therapies |
-|------|------------|-----------|-----------------|-------------------|
-| {GENE} | {mut/del/amp/fusion/not_altered} | {worsened/improved} | [1-line role] | [drug1, drug2 from FDA-approved or clinical trial; "None known" if not applicable] |
+#### {GENE_1}
+{GENE_1} showed {mutation/amplification/deletion/fusion/not altered}, which {improved/worsened} predicted outcome.
+This gene is involved in {brief biological role}.
+Potential therapies include {DRUG_NAMES} (from CFDE Druggable Genome dataset).
 
-#### 2. ...
-#### 3. ...
+#### {GENE_2}
+{GENE_2} showed {alteration}, which {improved/worsened} predicted outcome.
+This gene is involved in {brief biological role}.
+Potential therapies include {DRUG_NAMES} (from CFDE Druggable Genome dataset).
 
-**Clinical Summary:** [2-3 sentences synthesising the overall interpretation: what is the likely molecular basis of this patient's outcome, and what therapeutic opportunities does this suggest?]
+#### {GENE_3}
+{GENE_3} showed {alteration}, which {improved/worsened} predicted outcome.
+This gene is involved in {brief biological role}.
+Potential therapies include {DRUG_NAMES} (from CFDE Druggable Genome dataset).
+
+## NEST 2: {NEST_ID}
+
+### Summary
+This NEST was associated with {improved/worsened} predicted outcome.
+Biologically, it is involved in [{PATHWAY_NAME}]({REACTOME_URL}), which regulates {brief pathway function}.
+This pathway may contribute to the patient phenotype because {clinical reasoning}.
+
+### Top Genes
+
+#### {GENE_1}
+...
+
+#### {GENE_2}
+...
+
+#### {GENE_3}
+...
+
+## NEST 3: {NEST_ID}
+
+### Summary
+...
+
+### Top Genes
+...
+
+## Overall Patient Interpretation
+
+Overall, the model predicts a {high-risk/low-risk} phenotype primarily driven by alterations in {major pathways}.
+The strongest contributing biological themes include {theme_1}, {theme_2}, and {theme_3}.
+These findings may suggest sensitivity/resistance to {therapy types}, although clinical validation is required.
+
 ---
 
 ## Rules
 - Use ONLY the gene and pathway information provided. Do not invent patient data.
-- For Reactome links: only include a link if you are confident the pathway ID is correct.
-- For Targeted Therapies: focus on FDA-approved targeted agents or active clinical trials; use "None known" if not applicable.
-- Drug information is pre-populated from the CFDE IDG Druggable Genome catalogue (Pharos/TCRD, Tclin targets only). Use ONLY the listed drugs for each gene. If no drugs are listed, write "None known".
+- For Reactome links: use the format [{PATHWAY_NAME}](https://reactome.org/PathwayBrowser/#/{PATHWAY_ID}) only if you are confident the pathway ID is correct. Otherwise write [{PATHWAY_NAME}](N/A).
+- Drug information is pre-populated from the CFDE IDG Druggable Genome catalogue (Pharos/TCRD, Tclin targets only). Use ONLY the listed CFDE drugs for each gene. If no drugs are listed, write "None known".
 - Keep each section concise. This output will be stored in a database and displayed to oncologists.
 - Process ALL patients in the batch before finishing. Use "---" as the separator between patients.
 """
@@ -84,7 +121,7 @@ def build_user_message(patients: list[dict]) -> str:
             lines.append("  Top patient-specific genes:")
             for gene in nest.get("top_patient_genes", []):
                 alts = ", ".join(gene.get("alteration_types", ["not_altered"]))
-                cfde = _DRUG_LOOKUP.get(gene["gene_name"].upper(), [])
+                cfde = _cfde.filter_breast_cancer(_DRUG_LOOKUP.get(gene["gene_name"].upper(), []))
                 drug_str = (", ".join(cfde[:5])) if cfde else "None known"
                 lines.append(
                     f"    {gene['gene_name']} | alteration: {alts} | "

@@ -10,145 +10,491 @@
 :root {
   --bg: #ffffff; --surf: #f6f8fa; --surf2: #eaeef2; --border: #d0d7de;
   --accent: #0969da; --text: #1f2328; --muted: #656d76;
-  --red: #e74c3c; --green: #27ae60;
+  --red: #cf222e; --green: #1a7f37; --orange: #9a6700; --purple: #8250df;
+  --red-bg: #ffebe9; --green-bg: #dafbe1; --orange-bg: #fff8c5; --purple-bg: #fbefff;
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px 32px; overflow-y: auto; }
-h2 { font-size: 22px; margin-bottom: 16px; }
-h3 { font-size: 16px; margin: 24px 0 12px; }
 
-.filter-bar { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; }
-.filter-bar label { font-size: 13px; color: var(--muted); }
-.filter-bar select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+/* ── Header ──────────────────────────────────────── */
+.page-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.page-header h1 { font-size: 20px; font-weight: 700; }
+.page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.study-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surf); border: 1px solid var(--border); border-radius: 20px;
+  padding: 2px 10px; font-size: 11px; color: var(--muted); margin-top: 8px;
+}
+.study-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
-.metric-row { display: flex; gap: 16px; margin-bottom: 24px; }
-.metric { background: var(--surf); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; min-width: 140px; }
-.metric .label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
-.metric .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+/* ── Section ─────────────────────────────────────── */
+.section-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.9px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 12px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+section { margin-bottom: 32px; }
 
-.chart-container { max-width: 700px; margin-bottom: 16px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 32px; }
-th { text-align: left; padding: 8px 12px; background: var(--surf); border-bottom: 2px solid var(--border); font-weight: 600; }
-td { padding: 8px 12px; border-bottom: 1px solid var(--surf2); }
-tr:hover td { background: var(--surf); }
+/* ── Stat cards ──────────────────────────────────── */
+.stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-card {
+  flex: 1; min-width: 140px;
+  background: var(--surf); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 18px;
+}
+.stat-card .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.stat-card .value { font-size: 28px; font-weight: 800; margin-top: 4px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat-card .sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.val-blue   { color: var(--accent); }
+.val-red    { color: var(--red); }
+.val-green  { color: var(--green); }
+.val-purple { color: var(--purple); }
+.val-orange { color: var(--orange); }
 
-.empty { color: var(--muted); font-style: italic; padding: 32px 0; text-align: center; }
+/* ── Two-col layout ──────────────────────────────── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.two-col-6040 { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
+@media (max-width: 700px) { .two-col, .two-col-6040 { grid-template-columns: 1fr; } }
+
+/* ── Chart cards ─────────────────────────────────── */
+.chart-card {
+  background: var(--surf); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px 18px;
+}
+.chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.chart-card .sub-label { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.chart-wrap { position: relative; }
+
+/* ── Comparison bars ─────────────────────────────── */
+.cmp-row { margin-bottom: 14px; }
+.cmp-row:last-child { margin-bottom: 0; }
+.cmp-name { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.cmp-bars { display: flex; flex-direction: column; gap: 4px; }
+.cmp-bar-row { display: flex; align-items: center; gap: 8px; }
+.cmp-bar-label { font-size: 11px; width: 64px; color: var(--muted); flex-shrink: 0; }
+.cmp-bar-track { flex: 1; height: 8px; background: var(--surf2); border-radius: 4px; overflow: hidden; }
+.cmp-bar-fill  { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.cmp-bar-val   { font-size: 11px; font-weight: 600; width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ── NEST table ──────────────────────────────────── */
+.nest-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.nest-table th { text-align: left; padding: 6px 10px; background: var(--surf2); border-bottom: 2px solid var(--border); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+.nest-table td { padding: 7px 10px; border-bottom: 1px solid var(--surf2); vertical-align: middle; }
+.nest-table tr:last-child td { border-bottom: none; }
+.nest-table tr:hover td { background: var(--surf2); }
+.rlipp-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 20px;
+  font-size: 10px; font-weight: 600;
+}
+.rlipp-badge.good { background: var(--green-bg); color: var(--green); }
+.rlipp-badge.ok   { background: var(--orange-bg); color: var(--orange); }
+.rlipp-badge.low  { background: var(--surf2); color: var(--muted); }
+
+/* ── Gene bars ───────────────────────────────────── */
+.gene-bars { display: flex; flex-direction: column; gap: 7px; }
+.gene-bar-row { display: flex; align-items: center; gap: 8px; }
+.gene-bar-name { font-size: 12px; font-weight: 600; width: 70px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gene-bar-track { flex: 1; height: 10px; background: var(--surf2); border-radius: 4px; overflow: hidden; }
+.gene-bar-fill  { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.gene-bar-cnt   { font-size: 11px; width: 28px; text-align: right; color: var(--muted); flex-shrink: 0; }
+.gene-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+.gene-tag.mut  { background: var(--red-bg);    color: var(--red); }
+.gene-tag.amp  { background: var(--orange-bg); color: var(--orange); }
+.gene-tag.del  { background: var(--purple-bg); color: var(--purple); }
+.gene-tag.fus  { background: #ddf4ff;          color: #0550ae; }
+.gene-tag.drug { background: var(--green-bg);  color: var(--green); }
+
+.empty { color: var(--muted); font-style: italic; font-size: 13px; padding: 12px 0; }
+
+/* ── Innovation cards ────────────────────────────── */
+.innov-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+}
+@media (max-width: 900px) { .innov-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .innov-grid { grid-template-columns: 1fr; } }
+.innov-card {
+  background: var(--surf); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 14px; display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+}
+.innov-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.innov-card.c-blue::before   { background: var(--accent); }
+.innov-card.c-green::before  { background: var(--green); }
+.innov-card.c-orange::before { background: var(--orange); }
+.innov-card.c-purple::before { background: var(--purple); }
+.innov-card.c-red::before    { background: #0969da; }
+.innov-icon { font-size: 22px; line-height: 1; }
+.innov-title { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.innov-desc  { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* ── Powered-by footer ───────────────────────────── */
+.powered-by {
+  margin-top: 48px; padding: 20px 0 32px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.powered-by .pb-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--muted);
+}
+.powered-by .pb-logos {
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center;
+}
+.powered-by .pb-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-decoration: none; padding: 12px 28px;
+  border-right: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.powered-by .pb-item:last-child { border-right: none; }
+.powered-by .pb-item:hover { background: var(--surf); border-radius: 8px; }
+.powered-by .pb-item img { height: 36px; width: auto; object-fit: contain; filter: grayscale(20%); }
+.powered-by .pb-item span { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
 </style>
 </head>
 <body>
 
-<h2>Population Overview</h2>
-
-<div class="filter-bar">
-  <div><label>Study</label><br><select id="f-study"><option value="">(all)</option></select></div>
-  <div><label>Label</label><br><select id="f-label"><option value="">(all)</option></select></div>
-  <div><label>Predicted Class</label><br><select id="f-class">
-    <option value="">(all)</option><option value="high_risk">high_risk</option><option value="low_risk">low_risk</option>
-  </select></div>
+<div class="page-header">
+  <h1>NeST-VNN: Interpretable Multimodal Cancer Prognostics</h1>
+  <p>Enhanced ontology-guided neural network with multimodal data, clinical features, and explainable AI interpretability</p>
+  <div class="study-pill"><span class="dot"></span> breast_msk_2025 &nbsp;·&nbsp; Memorial Sloan Kettering 2025</div>
 </div>
 
-<div class="metric-row">
-  <div class="metric"><div class="label">Patients with LLM interpretations</div><div class="value" id="m-total">—</div></div>
-  <div class="metric"><div class="label">High risk</div><div class="value" id="m-high" style="color:var(--red)">—</div></div>
-  <div class="metric"><div class="label">Low risk</div><div class="value" id="m-low" style="color:var(--green)">—</div></div>
-</div>
+<!-- 0. Key innovations -->
+<section>
+  <div class="section-label">What We Built</div>
+  <div class="innov-grid">
+    <div class="innov-card c-blue">
+      <div class="innov-icon">🧬</div>
+      <div class="innov-title">Multimodal Data Integration</div>
+      <div class="innov-desc">Combined somatic mutations, copy-number amplifications &amp; deletions, and gene fusions into a unified input representation.</div>
+    </div>
+    <div class="innov-card c-green">
+      <div class="innov-icon">💊</div>
+      <div class="innov-title">CFDE Dataset Integration</div>
+      <div class="innov-desc">Cross-referenced model genes against the CFDE IDG Druggable Genome (Pharos/TCRD) to surface FDA-approved targeted therapies.</div>
+    </div>
+    <div class="innov-card c-orange">
+      <div class="innov-icon">⚙️</div>
+      <div class="innov-title">Custom Model Architecture</div>
+      <div class="innov-desc">Extended NeST-VNN with per-gene multi-omic feature layers and improved auxiliary supervision to boost predictive performance.</div>
+    </div>
+    <div class="innov-card c-purple">
+      <div class="innov-icon">🏥</div>
+      <div class="innov-title">Clinical Feature Integration</div>
+      <div class="innov-desc">Incorporated sample type, mutation burden, and fraction genome altered as clinical context for richer outcome modeling.</div>
+    </div>
+    <div class="innov-card c-red">
+      <div class="innov-icon">🤖</div>
+      <div class="innov-title">LLM Descriptive Interpretations</div>
+      <div class="innov-desc">Per-patient pathway-level explanations generated by Claude via AWS Bedrock, surfaced through an interactive GUI explorer.</div>
+    </div>
+  </div>
+</section>
 
-<h3>Outcome Distribution</h3>
-<div class="chart-container"><canvas id="chart-outcome" height="80"></canvas></div>
+<!-- 1. Study snapshot -->
+<section>
+  <div class="section-label">Study Snapshot</div>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="label">Total Patients</div>
+      <div class="value val-blue" id="s-total">—</div>
+      <div class="sub">In study cohort</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Predicted High Risk</div>
+      <div class="value val-red" id="s-high">—</div>
+      <div class="sub" id="s-high-pct">OS &lt; 46 months</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Predicted Low Risk</div>
+      <div class="value val-green" id="s-low">—</div>
+      <div class="sub" id="s-low-pct">OS ≥ 46 months</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Model Genes</div>
+      <div class="value val-purple">407</div>
+      <div class="sub">NeST ontology</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Biological Systems</div>
+      <div class="value val-orange">103</div>
+      <div class="sub">NeST terms</div>
+    </div>
+  </div>
+</section>
 
-<h3>NEST Frequency (top-3 driver systems across patients)</h3>
-<div class="chart-container"><canvas id="chart-nests" height="200"></canvas></div>
-<table id="tbl-nests"><thead><tr><th>NEST ID</th><th>Count</th><th>Avg Population RLIPP</th></tr></thead><tbody></tbody></table>
+<!-- 2. Risk distribution + clinical comparison -->
+<section>
+  <div class="section-label">Risk Prediction &amp; Clinical Features</div>
+  <div class="two-col-6040">
 
-<h3>Top Recurrently Important Genes</h3>
-<div class="chart-container"><canvas id="chart-genes" height="200"></canvas></div>
-<table id="tbl-genes"><thead><tr><th>Gene</th><th>Alteration</th><th>Count</th></tr></thead><tbody></tbody></table>
+    <div class="chart-card">
+      <h3>Risk Prediction Distribution</h3>
+      <div class="sub-label">All <span id="donut-n">—</span> patients · threshold: predicted probability 0.5</div>
+      <div class="chart-wrap" style="max-width:300px; margin: 0 auto;">
+        <canvas id="chart-donut" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Clinical Features by Risk Class</h3>
+      <div class="sub-label">Computed from LLM-interpreted cohort</div>
+      <div id="cmp-rows"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 3. Top NeSTs -->
+<section>
+  <div class="section-label">Top Biological Systems (NeSTs)</div>
+  <div class="chart-card">
+    <h3>Most Recurrently Important NeSTs across Patients</h3>
+    <div class="sub-label">Ranked by patient frequency · Population RLIPP &gt; 1 = system acts as a coherent biological unit</div>
+    <table class="nest-table" id="nest-table">
+      <thead><tr><th>#</th><th>NEST ID</th><th>Patients</th><th>Frequency</th><th>Avg Population RLIPP</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 4. Top genes -->
+<section>
+  <div class="section-label">Top Recurrently Altered Genes</div>
+  <div class="two-col">
+
+    <div class="chart-card">
+      <h3>Most Frequently Altered Genes</h3>
+      <div class="sub-label">Excluding unaltered genes · 💊 = CFDE IDG Tclin (FDA-approved drugs)</div>
+      <div class="gene-bars" id="gene-bars"></div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Druggable Targets in Cohort</h3>
+      <div class="sub-label">CFDE IDG Tclin genes with recurrent alterations</div>
+      <div id="drug-targets"></div>
+    </div>
+
+  </div>
+</section>
 
 <script>
-const fStudy = document.getElementById('f-study');
-const fLabel = document.getElementById('f-label');
-const fClass = document.getElementById('f-class');
+const STUDY  = 'breast_msk_2025';
+const LABEL  = 'binary_os_months';
+const ALT_COLORS = { mut: '#cf222e', amp: '#9a6700', del: '#8250df', fusion: '#0550ae' };
 
-let chartOutcome, chartNests, chartGenes;
+async function load() {
+  const [metaRes, interpRes, nestsRes, genesRes, cfdeRes] = await Promise.all([
+    fetch('/api/patients').then(r => r.json()),
+    fetch(`/api/interp/patients?study_id=${STUDY}&label=${LABEL}`).then(r => r.json()),
+    fetch(`/api/interp/population/nests?study_id=${STUDY}&label=${LABEL}`).then(r => r.json()),
+    fetch(`/api/interp/population/genes?study_id=${STUDY}&label=${LABEL}`).then(r => r.json()),
+    fetch('/api/cfde/drugs').then(r => r.json()).catch(() => ({})),
+  ]);
 
-async function loadFilters() {
-  const res = await fetch('/api/interp/filters');
-  const data = await res.json();
-  data.studies.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; fStudy.appendChild(o); });
-  data.labels.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; fLabel.appendChild(o); });
-}
+  const meta     = metaRes.meta || metaRes;
+  const allPats  = metaRes.patients || [];
+  const interp   = Array.isArray(interpRes) ? interpRes : [];
+  const cfde     = cfdeRes || {};
 
-function qs() {
-  const p = new URLSearchParams();
-  if (fStudy.value) p.set('study_id', fStudy.value);
-  if (fLabel.value) p.set('label', fLabel.value);
-  if (fClass.value) p.set('pred_class', fClass.value);
-  return p.toString();
-}
+  // ── 1. Snapshot ──────────────────────────────────
+  const nTotal = meta.nPatients || allPats.length;
+  const nHigh  = allPats.filter(p => p.pred >= 0.5).length;
+  const nLow   = nTotal - nHigh;
 
-function destroyChart(c) { if (c) c.destroy(); return null; }
+  document.getElementById('s-total').textContent = nTotal.toLocaleString();
+  document.getElementById('s-high').textContent  = nHigh.toLocaleString();
+  document.getElementById('s-low').textContent   = nLow.toLocaleString();
+  document.getElementById('s-high-pct').textContent = `${((nHigh/nTotal)*100).toFixed(1)}% of cohort`;
+  document.getElementById('s-low-pct').textContent  = `${((nLow/nTotal)*100).toFixed(1)}% of cohort`;
 
-async function refresh() {
-  const q = qs();
-
-  // Patients summary
-  const patients = await (await fetch('/api/interp/patients?' + q)).json();
-  document.getElementById('m-total').textContent = patients.length;
-  const high = patients.filter(p => p.predicted_class === 'high_risk').length;
-  const low = patients.filter(p => p.predicted_class === 'low_risk').length;
-  document.getElementById('m-high').textContent = high;
-  document.getElementById('m-low').textContent = low;
-
-  // Outcome distribution
-  chartOutcome = destroyChart(chartOutcome);
-  chartOutcome = new Chart(document.getElementById('chart-outcome'), {
-    type: 'bar',
-    data: { labels: ['high_risk', 'low_risk'], datasets: [{ data: [high, low], backgroundColor: ['#e74c3c', '#27ae60'] }] },
-    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+  // ── 2a. Donut chart ──────────────────────────────
+  document.getElementById('donut-n').textContent = nTotal.toLocaleString();
+  new Chart(document.getElementById('chart-donut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['High Risk', 'Low Risk'],
+      datasets: [{ data: [nHigh, nLow], backgroundColor: ['#cf222e', '#1a7f37'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} (${((ctx.raw/nTotal)*100).toFixed(1)}%)` } }
+      }
+    }
   });
 
-  // NEST frequency (exclude pred_class filter for population queries)
-  const nestQ = new URLSearchParams();
-  if (fStudy.value) nestQ.set('study_id', fStudy.value);
-  if (fLabel.value) nestQ.set('label', fLabel.value);
+  // ── 2b. Clinical comparison bars ─────────────────
+  const hiPats = interp.filter(p => p.predicted_class === 'high_risk');
+  const loPats = interp.filter(p => p.predicted_class === 'low_risk');
+  const avg = (arr, key) => arr.length ? arr.reduce((s, p) => s + (p[key] || 0), 0) / arr.length : 0;
 
-  const nests = await (await fetch('/api/interp/population/nests?' + nestQ)).json();
-  const nestTbody = document.querySelector('#tbl-nests tbody');
-  nestTbody.innerHTML = '';
-  nests.forEach(n => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${n.nest_id}</td><td>${n.cnt}</td><td>${n.avg_rlipp != null ? n.avg_rlipp.toFixed(4) : '—'}</td>`;
-    nestTbody.appendChild(tr);
+  const metrics = [
+    { name: 'Fraction Genome Altered', key: 'fraction_genome_altered', fmt: v => v.toFixed(3), max: 0.6 },
+    { name: 'Mutation Count',          key: 'mutation_count',          fmt: v => v.toFixed(1),  max: 14 },
+  ];
+
+  const cmpEl = document.getElementById('cmp-rows');
+  metrics.forEach(m => {
+    const hi = avg(hiPats, m.key);
+    const lo = avg(loPats, m.key);
+    const pct = v => Math.min(100, (v / m.max) * 100).toFixed(1);
+    cmpEl.innerHTML += `
+      <div class="cmp-row">
+        <div class="cmp-name">${m.name}</div>
+        <div class="cmp-bars">
+          <div class="cmp-bar-row">
+            <span class="cmp-bar-label" style="color:var(--red)">High risk</span>
+            <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${pct(hi)}%;background:var(--red)"></div></div>
+            <span class="cmp-bar-val" style="color:var(--red)">${m.fmt(hi)}</span>
+          </div>
+          <div class="cmp-bar-row">
+            <span class="cmp-bar-label" style="color:var(--green)">Low risk</span>
+            <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${pct(lo)}%;background:var(--green)"></div></div>
+            <span class="cmp-bar-val" style="color:var(--green)">${m.fmt(lo)}</span>
+          </div>
+        </div>
+      </div>`;
   });
-  chartNests = destroyChart(chartNests);
-  if (nests.length) {
-    chartNests = new Chart(document.getElementById('chart-nests'), {
-      type: 'bar',
-      data: { labels: nests.map(n => n.nest_id), datasets: [{ label: 'Count', data: nests.map(n => n.cnt), backgroundColor: '#0969da' }] },
-      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+
+  // Sample type breakdown
+  const hiMeta = hiPats.filter(p => p.sample_type === 'Metastasis').length;
+  const loMeta = loPats.filter(p => p.sample_type === 'Metastasis').length;
+  const hiMetaPct = hiPats.length ? ((hiMeta / hiPats.length) * 100).toFixed(0) : 0;
+  const loMetaPct = loPats.length ? ((loMeta / loPats.length) * 100).toFixed(0) : 0;
+  cmpEl.innerHTML += `
+    <div class="cmp-row">
+      <div class="cmp-name">Metastatic Samples</div>
+      <div class="cmp-bars">
+        <div class="cmp-bar-row">
+          <span class="cmp-bar-label" style="color:var(--red)">High risk</span>
+          <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${hiMetaPct}%;background:var(--red)"></div></div>
+          <span class="cmp-bar-val" style="color:var(--red)">${hiMetaPct}%</span>
+        </div>
+        <div class="cmp-bar-row">
+          <span class="cmp-bar-label" style="color:var(--green)">Low risk</span>
+          <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${loMetaPct}%;background:var(--green)"></div></div>
+          <span class="cmp-bar-val" style="color:var(--green)">${loMetaPct}%</span>
+        </div>
+      </div>
+    </div>`;
+
+  // ── 3. NeSTs ──────────────────────────────────────
+  const top10Nests = nestsRes.slice(0, 10);
+  const maxCnt = top10Nests[0]?.cnt || 1;
+  const nInterp = interp.length || 1;
+  const tbody = document.querySelector('#nest-table tbody');
+  top10Nests.forEach((n, i) => {
+    const pct = ((n.cnt / nInterp) * 100).toFixed(0);
+    const rlipp = n.avg_rlipp != null ? n.avg_rlipp.toFixed(2) : '—';
+    const rlippVal = n.avg_rlipp || 0;
+    const badgeCls = rlippVal >= 1.1 ? 'good' : rlippVal >= 0.9 ? 'ok' : 'low';
+    const barW = ((n.cnt / maxCnt) * 100).toFixed(0);
+    tbody.innerHTML += `
+      <tr>
+        <td style="color:var(--muted);font-size:11px">${i + 1}</td>
+        <td><strong>${n.nest_id}</strong></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:6px;background:var(--surf2);border-radius:3px;overflow:hidden;min-width:80px">
+              <div style="width:${barW}%;height:100%;background:var(--accent);border-radius:3px"></div>
+            </div>
+            <span style="font-size:12px;font-weight:600">${n.cnt}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--muted)">${pct}% of patients</td>
+        <td><span class="rlipp-badge ${badgeCls}">${rlipp}</span></td>
+      </tr>`;
+  });
+
+  // ── 4a. Gene bars ──────────────────────────────────
+  // Roll up by gene, take the dominant (highest-count) alteration per gene, exclude not_altered
+  const geneMap = {};
+  genesRes.forEach(g => {
+    if (!g.alteration_type || g.alteration_type === 'not_altered') return;
+    if (!geneMap[g.gene_name] || g.cnt > geneMap[g.gene_name].cnt) {
+      geneMap[g.gene_name] = g;
+    }
+  });
+  const topGenes = Object.values(geneMap).sort((a, b) => b.cnt - a.cnt).slice(0, 12);
+  const maxGeneCnt = topGenes[0]?.cnt || 1;
+
+  const geneBarsEl = document.getElementById('gene-bars');
+  if (!topGenes.length) {
+    geneBarsEl.innerHTML = '<div class="empty">No alteration data available yet.</div>';
+  } else {
+    topGenes.forEach(g => {
+      const w = ((g.cnt / maxGeneCnt) * 100).toFixed(0);
+      const alt = g.alteration_type;
+      const color = ALT_COLORS[alt] || '#656d76';
+      const hasDrug = !!cfde[g.gene_name.toUpperCase()];
+      const tagLabel = alt === 'mut' ? 'MUT' : alt === 'amp' ? 'AMP' : alt === 'del' ? 'DEL' : alt.toUpperCase();
+      const tagCls   = alt === 'mut' ? 'mut' : alt === 'amp' ? 'amp' : alt === 'del' ? 'del' : 'fus';
+      geneBarsEl.innerHTML += `
+        <div class="gene-bar-row">
+          <span class="gene-bar-name" title="${g.gene_name}">${g.gene_name}</span>
+          <span class="gene-tag ${tagCls}">${tagLabel}</span>
+          <div class="gene-bar-track"><div class="gene-bar-fill" style="width:${w}%;background:${color}"></div></div>
+          <span class="gene-bar-cnt">${g.cnt}</span>
+          ${hasDrug ? '<span class="gene-tag drug">💊</span>' : '<span style="width:28px"></span>'}
+        </div>`;
     });
   }
 
-  // Top genes
-  const genes = await (await fetch('/api/interp/population/genes?' + nestQ)).json();
-  const geneTbody = document.querySelector('#tbl-genes tbody');
-  geneTbody.innerHTML = '';
-  genes.forEach(g => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${g.gene_name}</td><td>${g.alteration_type || '—'}</td><td>${g.cnt}</td>`;
-    geneTbody.appendChild(tr);
-  });
-  chartGenes = destroyChart(chartGenes);
-  if (genes.length) {
-    chartGenes = new Chart(document.getElementById('chart-genes'), {
-      type: 'bar',
-      data: { labels: genes.map(g => g.gene_name), datasets: [{ label: 'Count', data: genes.map(g => g.cnt), backgroundColor: '#8250df' }] },
-      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
-    });
+  // ── 4b. Druggable targets ──────────────────────────
+  const drugEl = document.getElementById('drug-targets');
+  const alteredGenes = new Set(topGenes.map(g => g.gene_name.toUpperCase()));
+  // also include any gene in genesRes (including not_altered) that has CFDE drugs
+  const allGenesInCohort = [...new Set(genesRes.map(g => g.gene_name.toUpperCase()))];
+  const druggable = allGenesInCohort.filter(g => cfde[g]).map(g => ({
+    gene: g,
+    drugs: cfde[g].slice(0, 3),
+    cnt: genesRes.filter(r => r.gene_name.toUpperCase() === g).reduce((s, r) => s + r.cnt, 0),
+    altered: alteredGenes.has(g),
+  })).sort((a, b) => b.cnt - a.cnt);
+
+  if (!druggable.length) {
+    drugEl.innerHTML = '<div class="empty">No CFDE Tclin genes in current cohort data.</div>';
+  } else {
+    drugEl.innerHTML = druggable.map(d => `
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--surf2)">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+            ${d.gene}
+            ${d.altered ? '<span class="gene-tag mut" style="font-size:10px">altered</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${d.drugs.join(' · ')}${cfde[d.gene].length > 3 ? ` +${cfde[d.gene].length - 3} more` : ''}</div>
+        </div>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${d.cnt} patients</span>
+      </div>`).join('');
   }
 }
 
-[fStudy, fLabel, fClass].forEach(el => el.addEventListener('change', refresh));
-loadFilters().then(refresh);
+load();
 </script>
+
+<!-- Powered-by footer -->
+<div class="powered-by">
+  <span class="pb-label">Powered by</span>
+  <div class="pb-logos">
+    <a class="pb-item" href="https://commonfund.nih.gov/dataecosystem" target="_blank" rel="noopener">
+      <img src="logos/cfde_idg.png" alt="CFDE IDG">
+      <span>CFDE IDG</span>
+    </a>
+    <a class="pb-item" href="https://cm4ai.org" target="_blank" rel="noopener">
+      <img src="logos/cm4ai.png" alt="CM4AI">
+      <span>CM4AI</span>
+    </a>
+    <a class="pb-item" href="https://bridge2ai.org" target="_blank" rel="noopener">
+      <img src="logos/bridge2ai.png" alt="Bridge2AI" style="filter: invert(1) grayscale(20%);">
+      <span>Bridge2AI</span>
+    </a>
+  </div>
+</div>
+
 </body>
 </html>

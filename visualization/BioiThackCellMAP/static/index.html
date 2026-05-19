@@ -17,7 +17,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; d
   background: var(--surf); border-bottom: 1px solid var(--border);
   padding: 0 16px; height: 44px; flex-shrink: 0;
 }
-.tab-bar .logo { font-weight: 700; font-size: 15px; margin-right: 24px; color: var(--text); }
+.tab-bar .logo {
+  font-weight: 800; font-size: 15px; margin-right: 24px;
+  background: linear-gradient(90deg, #0969da, #8250df, #cf222e, #0969da);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: logo-shimmer 4s linear infinite;
+}
+@keyframes logo-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
 .tab-bar button {
   background: none; border: none; border-bottom: 2px solid transparent;
   padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
@@ -47,7 +58,13 @@ const buttons = document.querySelectorAll('.tab-bar button[data-tab]');
 
 function switchTab(name) {
   buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  iframe.src = tabs[name];
+  let src = tabs[name];
+  const pid = sessionStorage.getItem('syncPatientId');
+  if (pid) {
+    if (name === 'explorer') src += '&patient=' + encodeURIComponent(pid);
+    if (name === 'interpretation') src += '?patient=' + encodeURIComponent(pid);
+  }
+  iframe.src = src;
   sessionStorage.setItem('activeTab', name);
 }
 

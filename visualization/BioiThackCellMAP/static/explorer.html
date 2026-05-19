@@ -1299,6 +1299,7 @@ document.getElementById('pt-select').addEventListener('change', function () {
   selectPatient(this.value || null);
 });
 
+
 document.getElementById('pt-clear-btn').addEventListener('click', () => {
   document.getElementById('pt-select').value = '';
   document.getElementById('pt-search').value = '';
@@ -1341,8 +1342,14 @@ if (new URLSearchParams(window.location.search).has('embedded')) {
 }
 
 // Boot
-loadNetwork();
-loadPatients();
+Promise.all([loadNetwork(), loadPatients()]).then(() => {
+  const pid = new URLSearchParams(window.location.search).get('patient');
+  if (!pid) return;
+  const sel = document.getElementById('pt-select');
+  sel.value = pid;
+  document.getElementById('pt-bar').style.display = '';
+  selectPatient(pid);
+});
 </script>
 </body>
 </html>

@@ -21,6 +21,11 @@ except ImportError:
     interp_db = None
     _interp_available = False
 
+try:
+    from interpretation.cfde_drugs import filter_breast_cancer as _filter_bc
+except ImportError:
+    def _filter_bc(drugs): return drugs
+
 app = Flask(__name__, static_folder="static")
 CORS(app)
 
@@ -298,7 +303,7 @@ def get_gene_interpretation(patient_id, nest_id):
                 drugs = [g['drugs']] if g.get('drugs') else []
             result[g['gene_name']] = {
                 'biological_role':  g.get('biological_role') or '',
-                'drugs':            drugs,
+                'drugs':            _filter_bc(drugs),
                 'alteration_type':  g.get('alteration_type') or '',
                 'outcome_direction':g.get('outcome_direction') or '',
             }
@@ -369,7 +374,14 @@ def interp_patient_genes(patient_id):
     if not study_id or not label:
         return jsonify({"error": "study_id and label query params required"}), 400
     nest_id = request.args.get("nest_id") or None
-    return jsonify(interp_db.get_genes(patient_id, study_id, label, nest_id))
+    rows = [dict(r) for r in interp_db.get_genes(patient_id, study_id, label, nest_id)]
+    for row in rows:
+        try:
+            drugs = _json.loads(row.get('drugs') or '[]')
+        except Exception:
+            drugs = [row['drugs']] if row.get('drugs') else []
+        row['drugs'] = _json.dumps(_filter_bc(drugs))
+    return jsonify(rows)
 
 
 @app.route("/api/interp/population/nests", methods=["GET"])
@@ -408,6 +420,16 @@ def interp_pop_genes():
             GROUP BY gene_name, alteration_type ORDER BY cnt DESC LIMIT 30
         """, args).fetchall()
     return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/cfde/drugs", methods=["GET"])
+def cfde_drugs():
+    cache = Path(__file__).resolve().parent.parent.parent / "bioitworld_nest_vnn" / "interpretation" / "cfde_drug_lookup.json"
+    if not cache.exists():
+        return jsonify({})
+    raw = _json.loads(cache.read_text())
+    filtered = {gene: bc for gene, drugs in raw.items() if (bc := _filter_bc(drugs))}
+    return jsonify(filtered)
 
 
 if __name__ == "__main__":

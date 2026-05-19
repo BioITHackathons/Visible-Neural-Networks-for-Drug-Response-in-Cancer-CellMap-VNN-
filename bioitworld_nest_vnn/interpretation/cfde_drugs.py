@@ -51,6 +51,34 @@ def _clean_name(raw: str) -> str:
     return _SALT_RE.sub("", raw.strip().title()).strip()
 
 
+# FDA-approved drugs with breast cancer indications (DrugCentral / NCCN)
+_BREAST_CANCER_DRUGS: frozenset[str] = frozenset({
+    # CDK4/6 inhibitors
+    "abemaciclib", "palbociclib", "ribociclib",
+    # HER2-targeted
+    "trastuzumab", "pertuzumab", "trastuzumab emtansine", "trastuzumab deruxtecan",
+    "lapatinib", "neratinib", "tucatinib", "margetuximab",
+    # Endocrine therapy (SERMs, SERDs, aromatase inhibitors)
+    "tamoxifen", "toremifene", "raloxifene", "fulvestrant", "elacestrant",
+    "letrozole", "anastrozole", "exemestane",
+    # PARP inhibitors (BRCA-mutated breast cancer)
+    "olaparib", "talazoparib",
+    # PI3K / AKT / mTOR inhibitors
+    "alpelisib", "inavolisib", "capivasertib", "everolimus",
+    # Immunotherapy (triple-negative breast cancer)
+    "pembrolizumab", "atezolizumab",
+    # Antibody-drug conjugates
+    "sacituzumab govitecan", "datopotamab deruxtecan",
+    # Other breast-cancer approved agents
+    "bevacizumab", "eribulin", "capecitabine", "ixabepilone",
+})
+
+
+def filter_breast_cancer(drugs: list[str]) -> list[str]:
+    """Return only drugs with documented breast cancer indications."""
+    return [d for d in drugs if d.lower() in _BREAST_CANCER_DRUGS]
+
+
 def _find_gene_list() -> list[str]:
     """Auto-discover gene symbols from the most recently created gene2ind.txt."""
     pattern = str(_DATA_ROOT / "**" / "nest_vnn_input" / "gene2ind.txt")

@@ -15,35 +15,62 @@ _DRUG_LOOKUP = _cfde.load()
 
 # ── LLM response parser ───────────────────────────────────────────────────────
 
-_PATIENT_HDR_RE = re.compile(r"##\s*Patient:\s*(.+?)[\r\n]")
-_SECTION_RE = re.compile(r"####\s*(\d+)\.\s*(NEST:\d+)", re.IGNORECASE)
-_PATHWAY_RE = re.compile(r"\*\*Pathway Name:\*\*\s*(.+)", re.IGNORECASE)
-_REACTOME_RE = re.compile(r"\*\*Reactome Link:\*\*\s*(\S+)", re.IGNORECASE)
-_BIO_EXP_RE = re.compile(r"\*\*Biological Explanation:\*\*\s*(.+?)(?=\*\*|\Z)", re.DOTALL | re.IGNORECASE)
-_CLIN_RE = re.compile(r"\*\*Clinical Reasoning:\*\*\s*(.+?)(?=\*\*|\Z)", re.DOTALL | re.IGNORECASE)
-_SUMMARY_RE = re.compile(r"\*\*Clinical Summary:\*\*\s*(.+?)(?=---|\Z)", re.DOTALL | re.IGNORECASE)
-_TABLE_ROW_RE = re.compile(r"\|\s*([A-Z0-9]+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|")
+# Patient header: "# Patient P-0000123-T01-IM3"
+_PATIENT_HDR_RE  = re.compile(r"^#\s*Patient\s+(\S+)", re.MULTILINE)
+# NEST section:   "## NEST 1: NEST:33"
+_NEST_HDR_RE     = re.compile(r"^##\s*NEST\s+\d+:\s*(NEST:\d+)", re.MULTILINE | re.IGNORECASE)
+# ### Summary block up to the next ### or ##
+_SUMMARY_BLK_RE  = re.compile(r"###\s*Summary\s*\n(.*?)(?=###|^##\s)", re.DOTALL | re.IGNORECASE | re.MULTILINE)
+# ### Top Genes block
+_GENES_BLK_RE    = re.compile(r"###\s*Top Genes\s*\n(.*?)(?=^##\s|\Z)", re.DOTALL | re.IGNORECASE | re.MULTILINE)
+# Each gene entry under ####
+_GENE_ENTRY_RE   = re.compile(r"^####\s*([\w\-]+)\s*\n(.*?)(?=^####|\Z)", re.DOTALL | re.MULTILINE)
+# Overall interpretation
+_OVERALL_RE      = re.compile(r"^##\s*Overall Patient Interpretation\s*\n(.*?)(?=---|^#\s*Patient|\Z)", re.DOTALL | re.MULTILINE | re.IGNORECASE)
+# Markdown link [name](url)
+_MD_LINK_RE      = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+# Direction from summary prose
+_DIRECTION_RE    = re.compile(r"associated with\s+(improved|worsened)", re.IGNORECASE)
+# Alteration + direction from gene prose
+_GENE_ALT_RE     = re.compile(r"showed\s+(.+?),\s*which\s+(improved|worsened)", re.IGNORECASE)
+# Biological role from gene prose
+_GENE_ROLE_RE    = re.compile(r"involved in\s+(.+?)(?:\.|$)", re.IGNORECASE)
+# Drugs from gene prose
+_GENE_DRUGS_RE   = re.compile(r"Potential therapies include\s+(.+?)(?:\(from|\.|$)", re.IGNORECASE)
 
 
 def _clean(s: str) -> str:
     return s.strip().replace("\n", " ").replace("  ", " ") if s else ""
 
 
-def _parse_gene_table(block: str) -> list[dict]:
-    genes = []
-    for m in _TABLE_ROW_RE.finditer(block):
-        gene, alt, direction, bio_role, drugs_raw = (m.group(i) for i in range(1, 6))
-        if gene.lower() in ("gene", "---"):
-            continue
-        drug_list = [d.strip() for d in re.split(r"[,;]", drugs_raw) if d.strip() and d.strip().lower() != "none known"]
-        genes.append({
-            "gene_name": gene.strip(),
-            "alteration_type": alt.strip(),
-            "direction": direction.strip(),
-            "biological_role": _clean(bio_role),
-            "drugs": drug_list,
-        })
-    return genes
+def _parse_gene_entry(gene_name: str, prose: str, orig_genes: dict) -> dict:
+    """Parse a single #### GENE prose block into a structured dict."""
+    alt_m   = _GENE_ALT_RE.search(prose)
+    role_m  = _GENE_ROLE_RE.search(prose)
+    drugs_m = _GENE_DRUGS_RE.search(prose)
+
+    alteration = _clean(alt_m.group(1)) if alt_m else "not altered"
+    direction  = alt_m.group(2).lower() if alt_m else ""
+    bio_role   = _clean(role_m.group(1)) if role_m else ""
+    drugs_raw  = _clean(drugs_m.group(1)) if drugs_m else ""
+    drug_list  = [d.strip() for d in re.split(r"[,;]", drugs_raw)
+                  if d.strip() and d.strip().lower() not in ("none known", "none", "")]
+
+    og = orig_genes.get(gene_name, {})
+    # Replace with CFDE-verified drugs if available
+    cfde = _DRUG_LOOKUP.get(gene_name.upper())
+    if cfde is not None:
+        drug_list = cfde
+
+    return {
+        "gene_name":      gene_name,
+        "alteration_type": alteration,
+        "direction":       direction,
+        "biological_role": bio_role,
+        "drugs":           drug_list,
+        "rank":            og.get("rank", 0),
+        "importance_score": og.get("importance_score"),
+    }
 
 
 def _parse_llm_response(raw: str, patient_batch: list[dict]) -> list[dict]:
@@ -51,17 +78,16 @@ def _parse_llm_response(raw: str, patient_batch: list[dict]) -> list[dict]:
     results = []
     patient_map = {p["patient_id"]: p for p in patient_batch}
 
-    # Split raw text into one section per patient
-    sections = re.split(r"(?=##\s*Patient:)", raw)
+    # Split on "# Patient <ID>" boundaries
+    sections = re.split(r"(?=^#\s*Patient\s+)", raw, flags=re.MULTILINE)
 
     for section in sections:
         hdr = _PATIENT_HDR_RE.match(section)
         if not hdr:
             continue
         patient_id = hdr.group(1).strip()
-        block = section
 
-        # Fuzzy fallback: if exact ID not found, try contains match
+        # Fuzzy fallback
         if patient_id not in patient_map:
             patient_id = next(
                 (pid for pid in patient_map if pid in patient_id or patient_id in pid),
@@ -69,63 +95,91 @@ def _parse_llm_response(raw: str, patient_batch: list[dict]) -> list[dict]:
             )
 
         base = patient_map.get(patient_id, patient_batch[0])
+        orig_nests_map = {n["nest_id"]: n for n in base.get("top_nests", [])}
+
+        # Overall interpretation
+        overall_m = _OVERALL_RE.search(section)
+        overall   = _clean(overall_m.group(1)) if overall_m else ""
+
         result = {
-            "patient_id": patient_id,
-            "study_id": base["study_id"],
-            "label": base["label"],
-            "predicted_probability": base.get("predicted_probability"),
-            "predicted_class": base.get("predicted_class"),
-            "sample_type": base.get("sample_type"),
-            "mutation_count": base.get("mutation_count"),
+            "patient_id":             patient_id,
+            "study_id":               base["study_id"],
+            "label":                  base["label"],
+            "predicted_probability":  base.get("predicted_probability"),
+            "predicted_class":        base.get("predicted_class"),
+            "sample_type":            base.get("sample_type"),
+            "mutation_count":         base.get("mutation_count"),
             "fraction_genome_altered": base.get("fraction_genome_altered"),
-            "llm_raw_markdown": block.strip(),
-            "nests": [],
+            "llm_raw_markdown":       section.strip(),
+            "clinical_summary":       overall,
+            "nests":                  [],
         }
 
-        # Clinical summary
-        sm = _SUMMARY_RE.search(block)
-        result["clinical_summary"] = _clean(sm.group(1)) if sm else ""
+        # Find all NEST sections
+        nest_positions = [(m.start(), m.group(1)) for m in _NEST_HDR_RE.finditer(section)]
 
-        # Split block by NEST sections
-        nest_positions = [(m.start(), m.group(2)) for m in _SECTION_RE.finditer(block)]
         for idx, (pos, nest_id) in enumerate(nest_positions):
-            end_pos = nest_positions[idx + 1][0] if idx + 1 < len(nest_positions) else len(block)
-            nest_block = block[pos:end_pos]
+            end_pos = nest_positions[idx + 1][0] if idx + 1 < len(nest_positions) else len(section)
+            # Stop before Overall Patient Interpretation
+            overall_pos = (overall_m.start() if overall_m else len(section))
+            end_pos = min(end_pos, overall_pos)
+            nest_block = section[pos:end_pos]
 
-            pathway = _clean(m.group(1)) if (m := _PATHWAY_RE.search(nest_block)) else ""
-            reactome = _clean(m.group(1)) if (m := _REACTOME_RE.search(nest_block)) else "N/A"
-            bio_exp = _clean(m.group(1)) if (m := _BIO_EXP_RE.search(nest_block)) else ""
-            clin = _clean(m.group(1)) if (m := _CLIN_RE.search(nest_block)) else ""
+            # --- Summary block ---
+            summ_m     = _SUMMARY_BLK_RE.search(nest_block)
+            summ_prose = summ_m.group(1) if summ_m else ""
 
-            # Match back to extracted nest data for importance/scores
-            orig_nests = {n["nest_id"]: n for n in base.get("top_nests", [])}
-            orig = orig_nests.get(nest_id, {})
+            direction_m = _DIRECTION_RE.search(summ_prose)
+            direction   = direction_m.group(1).lower() if direction_m else ""
 
-            genes_parsed = _parse_gene_table(nest_block)
-            # Merge importance from original extraction + replace drugs with CFDE data
+            # Extract markdown link for pathway + reactome
+            link_m    = _MD_LINK_RE.search(summ_prose)
+            pathway   = _clean(link_m.group(1)) if link_m else ""
+            reactome  = link_m.group(2).strip() if link_m else "N/A"
+            if reactome and not reactome.startswith("http"):
+                reactome = "N/A"
+
+            # Split prose into bio explanation vs clinical reasoning on the sentence boundary
+            bio_exp = clin = ""
+            if summ_prose:
+                sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", summ_prose.strip()) if s.strip()]
+                # Sentence containing "may contribute" → clinical reasoning; rest → bio explanation
+                bio_parts, clin_parts = [], []
+                for s in sentences:
+                    if re.search(r"may contribute|patient phenotype|because", s, re.IGNORECASE):
+                        clin_parts.append(s)
+                    else:
+                        bio_parts.append(s)
+                bio_exp = " ".join(bio_parts)
+                clin    = " ".join(clin_parts)
+
+            # --- Genes block ---
+            genes_block = ""
+            genes_m = _GENES_BLK_RE.search(nest_block)
+            if genes_m:
+                genes_block = genes_m.group(1)
+
+            orig = orig_nests_map.get(nest_id, {})
             orig_genes = {g["gene_name"]: g for g in orig.get("top_patient_genes", [])}
-            for g in genes_parsed:
-                og = orig_genes.get(g["gene_name"], {})
-                g["rank"] = og.get("rank", 0)
-                g["importance_score"] = og.get("importance_score")
-                # Replace LLM-suggested drugs with CFDE-verified approved drugs.
-                # If the gene has no CFDE entry, keep whatever the LLM produced.
-                cfde = _DRUG_LOOKUP.get(g["gene_name"].upper())
-                if cfde is not None:
-                    g["drugs"] = cfde
+
+            genes_parsed = []
+            for gm in _GENE_ENTRY_RE.finditer(genes_block):
+                gene_name = gm.group(1).strip()
+                gene_prose = gm.group(2)
+                genes_parsed.append(_parse_gene_entry(gene_name, gene_prose, orig_genes))
 
             result["nests"].append({
-                "nest_id": nest_id,
-                "rank": orig.get("rank", idx + 1),
-                "importance_score": orig.get("importance_score"),
-                "rlipp_score": orig.get("rlipp_score"),
-                "population_rlipp": orig.get("population_rlipp"),
-                "direction": orig.get("direction", ""),
-                "pathway_name": pathway,
-                "reactome_link": reactome if reactome.startswith("http") else "N/A",
+                "nest_id":               nest_id,
+                "rank":                  orig.get("rank", idx + 1),
+                "importance_score":      orig.get("importance_score"),
+                "rlipp_score":           orig.get("rlipp_score"),
+                "population_rlipp":      orig.get("population_rlipp"),
+                "direction":             direction or orig.get("direction", ""),
+                "pathway_name":          pathway,
+                "reactome_link":         reactome,
                 "biological_explanation": bio_exp,
-                "clinical_reasoning": clin,
-                "genes": genes_parsed,
+                "clinical_reasoning":    clin,
+                "genes":                 genes_parsed,
             })
 
         results.append(result)

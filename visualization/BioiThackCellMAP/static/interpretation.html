@@ -70,11 +70,19 @@ tr.selected td { background: #ddf4ff; }
 .llm-raw th, .llm-raw td { padding: 4px 8px; }
 
 .empty { color: var(--muted); font-style: italic; padding: 32px 0; text-align: center; }
+
+.ai-disclaimer {
+  margin-top: 40px; padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
+}
+.ai-disclaimer svg { flex-shrink: 0; opacity: 0.6; }
 </style>
 </head>
 <body>
 
-<h2>Patient Explorer</h2>
+<h2>Descriptive Interpretations</h2>
 
 <div class="filter-bar">
   <div><label>Study</label><br><select id="f-study"><option value="">(all)</option></select></div>
@@ -82,6 +90,7 @@ tr.selected td { background: #ddf4ff; }
   <div><label>Predicted Class</label><br><select id="f-class">
     <option value="">(all)</option><option value="high_risk">high_risk</option><option value="low_risk">low_risk</option>
   </select></div>
+  <div><label>Sample ID</label><br><select id="f-patient" style="min-width:260px"><option value="">— select sample —</option></select></div>
 </div>
 
 <div class="metric-row">
@@ -90,13 +99,6 @@ tr.selected td { background: #ddf4ff; }
   <div class="metric"><div class="label">Low risk</div><div class="value" id="m-low" style="color:var(--green)">—</div></div>
   <div class="metric"><div class="label">Avg FGA</div><div class="value" id="m-fga">—</div></div>
 </div>
-
-<table id="patient-list">
-  <thead><tr><th>Patient ID</th><th>Class</th><th>Probability</th><th>Sample Type</th><th>Mutations</th><th>FGA</th></tr></thead>
-  <tbody></tbody>
-</table>
-
-<hr class="divider">
 
 <div id="detail">
   <h3>Patient Detail</h3>
@@ -107,12 +109,12 @@ tr.selected td { background: #ddf4ff; }
 </div>
 
 <script>
-const fStudy = document.getElementById('f-study');
-const fLabel = document.getElementById('f-label');
-const fClass = document.getElementById('f-class');
+const fStudy   = document.getElementById('f-study');
+const fLabel   = document.getElementById('f-label');
+const fClass   = document.getElementById('f-class');
+const fPatient = document.getElementById('f-patient');
 
 let patients = [];
-let selectedPid = null;
 
 async function loadFilters() {
   const res = await fetch('/api/interp/filters');
@@ -136,41 +138,45 @@ async function refreshList() {
 
   document.getElementById('m-total').textContent = patients.length;
   const high = patients.filter(p => p.predicted_class === 'high_risk').length;
-  const low = patients.filter(p => p.predicted_class === 'low_risk').length;
+  const low  = patients.filter(p => p.predicted_class === 'low_risk').length;
   document.getElementById('m-high').textContent = high;
-  document.getElementById('m-low').textContent = low;
+  document.getElementById('m-low').textContent  = low;
   const avgFga = patients.length ? (patients.reduce((s, p) => s + (p.fraction_genome_altered || 0), 0) / patients.length) : 0;
   document.getElementById('m-fga').textContent = avgFga.toFixed(3);
 
-  const tbody = document.querySelector('#patient-list tbody');
-  tbody.innerHTML = '';
+  // Rebuild patient dropdown
+  fPatient.innerHTML = '';
   patients.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.className = 'clickable' + (p.patient_id === selectedPid ? ' selected' : '');
-    tr.dataset.pid = p.patient_id;
-    tr.dataset.study = p.study_id;
-    tr.dataset.label = p.label;
-    const cls = p.predicted_class === 'high_risk' ? 'high' : 'low';
-    tr.innerHTML = `
-      <td>${p.patient_id}</td>
-      <td><span class="badge ${cls}">${(p.predicted_class || '').replace('_', ' ').toUpperCase()}</span></td>
-      <td>${fmt(p.predicted_score)}</td>
-      <td>${p.sample_type || '—'}</td>
-      <td>${p.mutation_count != null ? p.mutation_count : '—'}</td>
-      <td>${fmt(p.fraction_genome_altered, 3)}</td>`;
-    tr.addEventListener('click', () => selectPatient(p.patient_id, p.study_id, p.label));
-    tbody.appendChild(tr);
+    const o = document.createElement('option');
+    o.value = p.patient_id;
+    o.dataset.study = p.study_id;
+    o.dataset.label = p.label;
+    const cls = p.predicted_class === 'high_risk' ? 'HIGH RISK' : 'LOW RISK';
+    o.textContent = `${p.patient_id}: ${cls} (p=${fmt(p.predicted_score, 2)})`;
+    fPatient.appendChild(o);
   });
 
-  document.getElementById('detail').style.display = 'none';
-  selectedPid = null;
+  // Restore previously selected patient, or fall back to first
+  const urlPid = new URLSearchParams(window.location.search).get('patient');
+  const target = patients.find(p => p.patient_id === urlPid) || patients[0];
+  if (target) {
+    fPatient.value = target.patient_id;
+    sessionStorage.setItem('syncPatientId', target.patient_id);
+    await selectPatient(target.patient_id, target.study_id, target.label);
+  } else {
+    document.getElementById('detail').style.display = 'none';
+  }
 }
 
+fPatient.addEventListener('change', () => {
+  const opt = fPatient.selectedOptions[0];
+  if (opt && opt.value) {
+    selectPatient(opt.value, opt.dataset.study, opt.dataset.label);
+    sessionStorage.setItem('syncPatientId', opt.value);
+  }
+});
+
 async function selectPatient(pid, studyId, label) {
-  selectedPid = pid;
-  document.querySelectorAll('#patient-list tbody tr').forEach(tr => {
-    tr.classList.toggle('selected', tr.dataset.pid === pid);
-  });
 
   const q = `study_id=${encodeURIComponent(studyId)}&label=${encodeURIComponent(label)}`;
   const [patient, nests] = await Promise.all([
@@ -233,8 +239,8 @@ async function selectPatient(pid, studyId, label) {
   const llmSection = document.getElementById('llm-section');
   if (patient.llm_raw_markdown) {
     llmSection.innerHTML = `
-      <div class="accordion" style="margin-top:16px">
-        <div class="accordion-head"><span>Full LLM Reasoning (raw markdown)</span></div>
+      <div class="accordion open" style="margin-top:16px">
+        <div class="accordion-head"><span><strong style="font-size:16px">Summary</strong></span></div>
         <div class="accordion-body"><div class="llm-raw">${marked.parse(patient.llm_raw_markdown)}</div></div>
       </div>`;
     llmSection.querySelector('.accordion-head').addEventListener('click', function() {
@@ -244,7 +250,6 @@ async function selectPatient(pid, studyId, label) {
     llmSection.innerHTML = '';
   }
 
-  document.getElementById('detail').scrollIntoView({ behavior: 'smooth' });
 }
 
 function buildGeneTable(genes) {
@@ -261,7 +266,16 @@ function buildGeneTable(genes) {
 }
 
 [fStudy, fLabel, fClass].forEach(el => el.addEventListener('change', refreshList));
-loadFilters().then(refreshList);
+loadFilters().then(() => refreshList());
 </script>
+
+<div class="ai-disclaimer">
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Z" fill="currentColor"/>
+    <path d="M7.25 4.75a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0v-3.5Zm.75 6.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" fill="currentColor"/>
+  </svg>
+  The interpretations are generative AI-assisted and may contain inaccuracies. All biological and clinical findings should be independently verified by a qualified expert before clinical use.
+</div>
+
 </body>
 </html>
