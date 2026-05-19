@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeST-STRING Explorer</title>
+<script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #ffffff;
+  --surf:    #f6f8fa;
+  --surf2:   #eaeef2;
+  --surf3:   #d0d7de;
+  --border:  #d0d7de;
+  --accent:  #0969da;
+  --accent2: #8250df;
+  --text:    #1f2328;
+  --muted:   #656d76;
+  --muted2:  #818b98;
+  --pill-bg: #ddf4ff;
+  --pill-fg: #0550ae;
+}
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+header {
+  height: 50px; min-height: 50px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 14px; z-index: 10;
+}
+.logo {
+  font-size: 15px; font-weight: 700;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hdr-sub { font-size: 12px; color: var(--muted); flex: 1; }
+.chip {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 99px; background: var(--surf2);
+  border: 1px solid var(--border); color: var(--muted);
+  font-family: 'SF Mono', monospace; white-space: nowrap;
+}
+
+/* App: two equal panels */
+.app {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1; overflow: hidden; min-height: 0;
+}
+
+/* Left panel */
+.left-panel {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  display: flex; flex-direction: column;
+}
+#cy { width: 100%; height: 100%; }
+
+/* Loading overlay */
+.load-overlay {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,.94);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 20;
+}
+.load-box {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--muted);
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 22px;
+}
+
+/* Search bar */
+.search-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--surf2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; z-index: 5;
+}
+.search-bar input {
+  flex: 1; min-width: 0;
+  background: var(--surf3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px; padding: 5px 10px;
+  font-family: 'SF Mono', monospace;
+  outline: none; transition: border-color .15s;
+}
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar input.err   { border-color: #f85149; }
+
+/* Bottom stats strip */
+.net-stats {
+  flex-shrink: 0;
+  padding: 3px 12px;
+  font-size: 10px; color: var(--muted2);
+  background: var(--surf);
+  border-top: 1px solid var(--border);
+  font-family: 'SF Mono', monospace;
+}
+
+/* Depth legend */
+.legend {
+  position: absolute; bottom: 26px; left: 12px;
+  background: rgba(246,248,250,.96);
+  border: 1px solid var(--border);
+  border-radius: 9px; padding: 8px 12px;
+  font-size: 11px; z-index: 5;
+  display: flex; flex-direction: column; gap: 4px;
+  pointer-events: none;
+}
+.leg-row { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.leg-head {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted2); margin-bottom: 1px;
+}
+
+/* Right panel */
+.right-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--surf); }
+
+.splash {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; color: var(--muted2);
+}
+
+.grp-head {
+  flex-shrink: 0; padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border); background: var(--surf);
+}
+.grp-title { font-size: 18px; font-weight: 700; color: var(--accent); font-family: 'SF Mono', monospace; margin-bottom: 2px; }
+.grp-annot { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.genes { display: flex; flex-wrap: wrap; gap: 5px; max-height: 80px; overflow-y: auto; }
+.gene {
+  background: var(--pill-bg); color: var(--pill-fg);
+  font-size: 11px; font-weight: 500; padding: 2px 8px;
+  border-radius: 99px; font-family: 'SF Mono', monospace;
+  border: 1px solid rgba(88,166,255,.2); white-space: nowrap;
+}
+
+.ctrl-bar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; border-bottom: 1px solid var(--border); background: var(--surf2);
+}
+.ctrl-bar label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ctrl-bar input[type=range] { accent-color: var(--accent); width: 100px; }
+.score-val { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 28px; }
+.sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+
+.btn {
+  background: var(--accent); color: #ffffff; border: none;
+  padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: opacity .12s; white-space: nowrap;
+}
+.btn:hover { opacity: .85; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn-ghost {
+  background: var(--surf3); color: var(--text);
+  border: 1px solid var(--border); font-weight: 500;
+}
+.btn-ghost:hover { background: var(--surf); }
+
+.img-area {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px; gap: 16px; background: var(--bg);
+}
+.img-area img {
+  max-width: 100%; border-radius: 10px;
+  border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,.1);
+}
+.loading {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--muted); font-size: 13px; padding: 40px 20px;
+}
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-msg {
+  background: rgba(248,81,73,.1); border: 1px solid rgba(248,81,73,.3);
+  color: #f85149; padding: 10px 14px; border-radius: 8px; font-size: 12px;
+}
+
+/* Protein description cards */
+.prot-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.prot-card {
+  background: var(--surf2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 8px 10px; overflow: hidden;
+}
+.prot-card-name { font-size: 11px; font-weight: 700; color: var(--accent); font-family: 'SF Mono', monospace; margin-bottom: 3px; }
+.prot-card-desc {
+  font-size: 10px; color: var(--muted); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  cursor: pointer;
+}
+.prot-card-desc:hover { color: var(--accent); }
+
+/* Full description modal */
+.desc-modal-bg {
+  display: none;
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,.45);
+  align-items: center; justify-content: center;
+}
+.desc-modal-bg.open { display: flex; }
+.desc-modal {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 22px;
+  max-width: 480px; width: 90%; max-height: 70vh;
+  overflow-y: auto; position: relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,.2);
+}
+.desc-modal-name {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  font-family: 'SF Mono', monospace; margin-bottom: 10px;
+}
+.desc-modal-body {
+  font-size: 12px; color: var(--text); line-height: 1.6;
+}
+.desc-modal-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--muted); line-height: 1;
+}
+.desc-modal-close:hover { color: var(--text); }
+
+/* Tooltip */
+#tooltip {
+  position: fixed; pointer-events: none; z-index: 999;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; max-width: 300px;
+}
+#tt-name { font-weight: 700; color: var(--accent); font-family: monospace; margin-bottom: 2px; }
+#tt-sub  { color: var(--muted); font-size: 11px; line-height: 1.4; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* Patient mode bar */
+.pt-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 12px;
+  background: #fff8e1;
+  border-bottom: 1px solid #f0c040;
+  flex-shrink: 0; z-index: 5;
+}
+.pt-bar label { font-size: 11px; color: #7a5c00; white-space: nowrap; font-weight: 600; }
+.pt-bar input[type=text] {
+  width: 170px; background: #fff; border: 1px solid #e0b030;
+  border-radius: 6px; color: var(--text); font-size: 12px; padding: 4px 9px;
+  font-family: 'SF Mono', monospace; outline: none; transition: border-color .15s;
+}
+.pt-bar input:focus { border-color: #d29922; }
+.pt-bar select {
+  background: #fff; border: 1px solid #e0b030; border-radius: 6px;
+  color: var(--text); font-size: 12px; padding: 4px 8px;
+  font-family: 'SF Mono', monospace; max-width: 230px;
+  cursor: pointer; outline: none;
+}
+.pt-pred { font-size: 11px; font-weight: 700; color: #7a5c00; white-space: nowrap; }
+
+/* Patient node direction key in legend */
+.leg-dot-dir { width: 14px; height: 14px; border-radius: 50%; border: 3px solid transparent; flex-shrink: 0; }
+
+/* Direction color swatches */
+.dir-up-col  { background: #22c55e; }
+.dir-dn-col  { background: #ef4444; }
+
+/* Protein card direction coloring in patient mode */
+.prot-card.dir-up  { border-color: #86efac; background: #f0fdf4; }
+.prot-card.dir-dn  { border-color: #fca5a5; background: #fff1f2; }
+.prot-card-dir {
+  display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px;
+  border-radius: 99px; margin-left: 5px; vertical-align: middle;
+}
+.prot-card-dir.up  { background: #dcfce7; color: #166534; }
+.prot-card-dir.dn  { background: #fee2e2; color: #991b1b; }
+
+/* RLIPP note card */
+.rlipp-card {
+  margin: 0 18px 12px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 8px; padding: 10px 14px; font-size: 11px; line-height: 1.5;
+}
+.rlipp-card-title {
+  font-weight: 700; font-size: 11px; color: #92400e; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.rlipp-val {
+  font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700;
+}
+.rlipp-high { color: #b45309; }
+.rlipp-mid  { color: #0969da; }
+.rlipp-low  { color: #656d76; }
+.rlipp-none { color: #8c959f; }
+.rlipp-body { color: #78350f; line-height: 1.55; }
+.rlipp-body p { margin-bottom: 4px; }
+.rlipp-body strong { color: #92400e; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">NeST-STRING Explorer</div>
+  <div class="hdr-sub">NeST Map — Main Model · search or click a complex to explore its STRING network</div>
+  <span class="chip" id="net-chip">Loading…</span>
+</header>
+
+<div class="app">
+
+  <!-- Left: full NeST network -->
+  <div class="left-panel">
+
+    <div id="load-overlay" class="load-overlay">
+      <div class="load-box">
+        <div class="spinner"></div>
+        <span>Loading NeST Map from NDEx…</span>
+      </div>
+    </div>
+
+    <!-- Patient selector bar -->
+    <div class="pt-bar" id="pt-bar" style="display:none;">
+      <label>Patient:</label>
+      <input type="text" id="pt-search" placeholder="Search patient ID…" autocomplete="off" spellcheck="false">
+      <select id="pt-select" title="Select patient"></select>
+      <span class="pt-pred" id="pt-pred"></span>
+      <button class="btn btn-ghost" id="pt-clear-btn" style="font-size:11px;display:none;">X Clear</button>
+    </div>
+
+    <!-- Search bar -->
+    <div class="search-bar">
+      <input type="text" id="search-input" list="nest-list"
+             placeholder="Search NEST ID or annotation… (e.g. NEST:129 or 129)"
+             autocomplete="off" spellcheck="false">
+      <datalist id="nest-list"></datalist>
+      <button class="btn" id="search-btn" style="font-size:11px;">Search</button>
+      <button class="btn btn-ghost" id="reset-btn" style="font-size:11px;display:none;">Clear</button>
+    </div>
+
+    <div style="flex:1;position:relative;overflow:hidden;min-height:0;">
+      <div id="cy" style="width:100%;height:100%;"></div>
+    </div>
+    <div class="net-stats" id="net-stats"></div>
+
+    <!-- Depth legend — no Selection section -->
+    <div class="legend">
+      <div class="leg-head">Hierarchy depth</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#bc8cff;"></div>Root</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#58a6ff;"></div>Level 1</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#26a69a;"></div>Level 2</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#3fb950;"></div>Level 3</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#d29922;"></div>Level 4+</div>
+      <div id="pt-legend" style="display:none;">
+        <div class="leg-head" style="margin-top:4px;">Patient mode</div>
+        <div class="leg-row"><div class="leg-dot-dir dir-up-col" style="border-color:#16a34a;"></div>Higher outcome</div>
+        <div class="leg-row"><div class="leg-dot-dir dir-dn-col" style="border-color:#dc2626;"></div>Lower outcome</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: STRING view -->
+  <div class="right-panel">
+    <div class="splash" id="splash">
+      <p style="font-size:14px;">Search a NEST complex to explore its STRING network</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:4px;">Type a NEST ID in the search box above, or click any node in the graph</p>
+    </div>
+
+    <div id="gview" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="grp-head">
+        <div class="grp-title" id="gv-name"></div>
+        <div class="grp-annot" id="gv-annot"></div>
+        <div class="genes" id="gv-genes"></div>
+      </div>
+      <!-- RLIPP interpretation card (shown only in patient mode) -->
+      <div id="rlipp-card" class="rlipp-card" style="display:none;">
+        <div class="rlipp-card-title" id="rlipp-toggle" title="Click to expand/collapse">
+          <span>RLIPP Interpretation</span>
+          <span id="rlipp-vals"></span>
+          <span style="margin-left:auto;font-size:10px;color:#b45309;">▼</span>
+        </div>
+        <div id="rlipp-body" class="rlipp-body"></div>
+      </div>
+      <div class="ctrl-bar">
+        <label>STRING score</label>
+        <input type="range" id="score-sl" min="150" max="900" step="50" value="400">
+        <span class="score-val" id="score-lbl">400</span>
+        <div class="sep"></div>
+        <button class="btn" id="refresh-btn" style="font-size:11px;">Refresh</button>
+        <div class="sep"></div>
+        <button class="btn btn-ghost" id="open-btn" style="font-size:11px;">Open on STRING</button>
+      </div>
+      <div class="img-area" id="img-area">
+        <div class="loading"><div class="spinner"></div>Loading STRING network…</div>
+      </div>
+      <!-- STRING legend — no Nodes section -->
+      <div style="flex-shrink:0;padding:10px 18px;border-top:1px solid var(--border);background:var(--surf2);display:flex;gap:24px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted2);margin-bottom:5px;">Known interactions</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#0095ff;flex-shrink:0;border-radius:2px;"></div>Curated databases</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#ff7070;flex-shrink:0;border-radius:2px;"></div>Experimentally determined</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted2);margin:5px 0;">Predicted</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#00aa00;flex-shrink:0;border-radius:2px;"></div>Gene neighborhood</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#ff007f;flex-shrink:0;border-radius:2px;"></div>Gene fusions</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#6666ff;flex-shrink:0;border-radius:2px;"></div>Gene co-occurrence</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted2);margin-bottom:5px;">Other associations</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#999900;flex-shrink:0;border-radius:2px;"></div>Textmining</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#333333;flex-shrink:0;border-radius:2px;"></div>Co-expression</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);"><div style="width:18px;height:3px;background:#22bbcc;flex-shrink:0;border-radius:2px;"></div>Protein homology</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tooltip">
+  <div id="tt-name"></div>
+  <div id="tt-sub"></div>
+</div>
+
+<!-- Full description modal -->
+<div class="desc-modal-bg" id="desc-modal-bg">
+  <div class="desc-modal">
+    <button class="desc-modal-close" id="desc-modal-close">&#x2715;</button>
+    <div class="desc-modal-name" id="desc-modal-name"></div>
+    <div class="desc-modal-body" id="desc-modal-body"></div>
+  </div>
+</div>
+
+<script>
+const NETWORK_ID = '9a8f5326-aa6e-11ea-aaef-0ac135e8bacf';
+
+// State
+let nestData      = {};
+let cy            = null;
+let activeGroup   = null;
+let fetchController = null;
+
+// Patient mode state
+let patientMeta     = null;
+let patientId       = null;
+let patientTopNests = [];
+let patientPred     = null;
+let patientGenes    = {};
+
+// Gene description + alteration lookups (populated after each STRING fetch)
+let protDescriptions  = {};   // gene → STRING annotation (fallback)
+let geneSummaries     = {};   // gene → full MyGene.info summary (preferred)
+let patientAlterations = {};  // gene → {mutation:1, cnamplification:1, ...}
+
+const ALT_LABELS = {
+  mutation:        { label: 'MUT',  bg: '#fef3c7', color: '#92400e', border: '#f59e0b' },
+  cnamplification: { label: 'AMP',  bg: '#ede9fe', color: '#5b21b6', border: '#8b5cf6' },
+  cndeletion:      { label: 'DEL',  bg: '#dbeafe', color: '#1e40af', border: '#3b82f6' },
+  fusion:          { label: 'FUS',  bg: '#d1fae5', color: '#065f46', border: '#10b981' },
+};
+
+function showGeneDesc(name) {
+  const summary = geneSummaries[name];
+  const fallback = protDescriptions[name];
+  const raw = summary || fallback || 'No description available.';
+  const safe = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  openDescModal(name, safe.replace(/;/g, ';<br>').replace(/\n/g, '<br>'));
+}
+
+function altBadgesHtml(gene) {
+  const alts = patientAlterations[gene] || {};
+  return Object.keys(alts).map(k => {
+    const s = ALT_LABELS[k];
+    if (!s) return '';
+    return `<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;`
+      + `border-radius:99px;margin-left:4px;vertical-align:middle;`
+      + `background:${s.bg};color:${s.color};border:1px solid ${s.border};">${s.label}</span>`;
+  }).join('');
+}
+
+// CX parser
+function parseCX(data) {
+  const nodes     = {};
+  const edges     = [];
+  const nodeAttrs = {};
+  const positions = {};
+
+  for (const item of data) {
+    const key = Object.keys(item)[0];
+    const val = item[key];
+
+    if (key === 'nodes') {
+      for (const n of val) {
+        nodes[n['@id']] = { name: n.n || String(n['@id']), attrs: {} };
+      }
+    } else if (key === 'edges') {
+      for (const e of val) {
+        edges.push({ id: e['@id'], source: e.s, target: e.t });
+      }
+    } else if (key === 'nodeAttributes') {
+      for (const a of val) {
+        if (!nodeAttrs[a.po]) nodeAttrs[a.po] = {};
+        nodeAttrs[a.po][a.n] = a.v;
+      }
+    } else if (key === 'cartesianLayout') {
+      for (const pos of val) {
+        positions[pos.node] = { x: pos.x, y: pos.y };
+      }
+    }
+  }
+
+  for (const [nid, attrs] of Object.entries(nodeAttrs)) {
+    if (nodes[nid]) nodes[nid].attrs = attrs;
+  }
+
+  return { nodes, edges, positions };
+}
+
+// Build Cytoscape elements
+function buildElements(parsed) {
+  const els = [];
+  nestData = {};
+
+  for (const [nid, node] of Object.entries(parsed.nodes)) {
+    const isGroup = node.name.startsWith('NEST:');
+    const isRoot  = node.name === 'NEST';
+    if (!isGroup && !isRoot) continue;
+
+    const attrs = node.attrs;
+    const size  = isRoot ? 9999 : (parseInt(attrs.Size) || 1);
+    const genes = isRoot ? [] : (attrs.Genes || '').split(/\s+/).filter(Boolean);
+
+    if (!isRoot) {
+      nestData[node.name] = { annotation: attrs.Annotation || '', size, genes, nid: Number(nid) };
+    }
+
+    els.push({ data: {
+      id:         node.name,
+      nid:        Number(nid),
+      label:      isRoot ? 'NeST' : (attrs.Annotation ? `${node.name}\n${attrs.Annotation}` : node.name),
+      annotation: isRoot ? 'NeST Map — Main Model' : (attrs.Annotation || ''),
+      size, genes,
+      type: isRoot ? 'nest-root' : 'nest',
+    }});
+  }
+
+  const includedNames = new Set([...Object.keys(nestData), 'NEST']);
+  for (const edge of parsed.edges) {
+    const src = parsed.nodes[edge.source];
+    const tgt = parsed.nodes[edge.target];
+    if (!src || !tgt) continue;
+    if (!includedNames.has(src.name) || !includedNames.has(tgt.name)) continue;
+    els.push({ data: {
+      id: `h_${edge.id}`,
+      source: src.name, target: tgt.name,
+      etype: 'hier',
+    }});
+  }
+
+  return els;
+}
+
+// Color nodes by hierarchy depth
+const DEPTH_COLORS = ['#bc8cff','#58a6ff','#26a69a','#3fb950','#d29922','#e05d44'];
+
+function assignDepthColors() {
+  const depth = { 'NEST': -1 };
+  const queue = ['NEST'];
+
+  while (queue.length) {
+    const id = queue.shift();
+    cy.getElementById(id).outgoers('[etype = "hier"]').targets().forEach(t => {
+      if (depth[t.id()] === undefined) {
+        depth[t.id()] = (depth[id] || 0) + 1;
+        queue.push(t.id());
+      }
+    });
+  }
+
+  cy.batch(() => {
+    cy.nodes('[type = "nest"]').forEach(n => {
+      const d = depth[n.id()] ?? 0;
+      const c = DEPTH_COLORS[Math.min(d, DEPTH_COLORS.length - 1)];
+      n.style({ 'background-color': c, 'border-color': 'rgba(0,0,0,.18)' });
+      n.data('depth', d);
+    });
+
+    cy.edges('[etype = "hier"]').forEach(e => {
+      const srcId = e.source().id();
+      const sd = srcId === 'NEST' ? -1 : (depth[srcId] ?? 3);
+      e.data('srcDepth', sd);
+    });
+  });
+}
+
+// Cytoscape init
+function initGraph(parsed) {
+  const els    = buildElements(parsed);
+  const hasPos = Object.keys(parsed.positions).length > 0;
+
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: els,
+    style: [
+      {
+        selector: 'node[type = "nest-root"]',
+        style: {
+          shape: 'ellipse',
+          width: 110, height: 110,
+          'background-color': '#0969da',
+          'border-color': '#0550ae',
+          'border-width': 3,
+          label: 'NeST',
+          color: '#ffffff',
+          'font-size': 17,
+          'font-family': "'SF Mono', monospace",
+          'font-weight': 800,
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'text-outline-width': 0,
+          cursor: 'default',
+          opacity: 1,
+          'z-index': 20,
+        },
+      },
+      {
+        selector: 'node[type = "nest"]',
+        style: {
+          shape: 'ellipse',
+          width:  'mapData(size, 1, 300, 18, 96)',
+          height: 'mapData(size, 1, 300, 18, 96)',
+          'background-color': '#58a6ff',
+          'border-color':     '#1f6feb',
+          'border-width': 1.5,
+          label: 'data(label)',
+          color: '#1f2328',
+          'font-size': ele => Math.round(6 + Math.log10(Math.max(1, ele.data('size'))) * 2.5) + 'px',
+          'font-family': "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          'font-weight': 600,
+          'text-valign': 'bottom',
+          'text-halign': 'center',
+          'text-margin-y': 4,
+          'text-wrap': 'wrap',
+          'text-max-width': 100,
+          'text-outline-width': 0,
+          cursor: 'pointer',
+          opacity: 0.88,
+        },
+      },
+      {
+        selector: 'edge[etype = "hier"]',
+        style: {
+          width: 0.7,
+          'line-color': '#c0c8d2',
+          'target-arrow-color': '#c0c8d2',
+          'target-arrow-shape': 'triangle',
+          'arrow-scale': 0.6,
+          'curve-style': 'bezier',
+          opacity: 0.55,
+        },
+      },
+      {
+        selector: 'edge[etype = "hier"][srcDepth = -1]',
+        style: { width: 2.4, 'line-color': '#3d4451', 'target-arrow-color': '#3d4451', 'arrow-scale': 0.9, opacity: 0.85 },
+      },
+      {
+        selector: 'edge[etype = "hier"][srcDepth = 0]',
+        style: { width: 1.7, 'line-color': '#5a6478', 'target-arrow-color': '#5a6478', 'arrow-scale': 0.8, opacity: 0.75 },
+      },
+      {
+        selector: 'edge[etype = "hier"][srcDepth = 1]',
+        style: { width: 1.1, 'line-color': '#8c959f', 'target-arrow-color': '#8c959f', 'arrow-scale': 0.7, opacity: 0.65 },
+      },
+      { selector: 'node.sel-focus', style: {
+        'background-color': '#e16f24', 'border-color': '#7d3803', 'border-width': 3, opacity: 1, 'z-index': 10,
+      }},
+      { selector: 'node.sel-neighbor', style: {
+        'border-color': '#e16f24', 'border-width': 3, opacity: 1, 'z-index': 5,
+      }},
+      { selector: 'edge.sel-edge', style: {
+        'line-color': '#e16f24', 'target-arrow-color': '#e16f24', opacity: 1, width: 2,
+      }},
+      { selector: '.dim', style: { opacity: 0.15 } },
+    ],
+    layout: hasPos ? {
+      name: 'preset',
+      positions: node => {
+        const pos = parsed.positions[node.data('nid')];
+        return pos || { x: 0, y: 0 };
+      },
+      padding: 50,
+    } : {
+      name: 'breadthfirst',
+      directed: true, padding: 50, spacingFactor: 1.8,
+    },
+    wheelSensitivity: 0.3,
+    minZoom: 0.04, maxZoom: 8,
+  });
+
+  assignDepthColors();
+
+  const tooltip = document.getElementById('tooltip');
+  cy.on('mouseover', 'node[type = "nest-root"]', e => {
+    document.getElementById('tt-name').textContent = 'NeST Map — Main Model';
+    document.getElementById('tt-sub').textContent  = 'Root node · connects to all major cell-process clusters';
+    tooltip.style.display = 'block';
+  });
+  cy.on('mouseover', 'node[type = "nest"]', e => {
+    const d = e.target.data();
+    document.getElementById('tt-name').textContent = d.id;
+    document.getElementById('tt-sub').textContent =
+      `${d.annotation || 'No annotation'} · ${d.size} genes`;
+    tooltip.style.display = 'block';
+  });
+  cy.on('mousemove', 'node', e => {
+    tooltip.style.left = (e.originalEvent.clientX + 14) + 'px';
+    tooltip.style.top  = (e.originalEvent.clientY - 10) + 'px';
+  });
+  cy.on('mouseout', 'node', () => { tooltip.style.display = 'none'; });
+
+  cy.on('tap', 'node[type = "nest"]', e => {
+    const id = e.target.data('id');
+    document.getElementById('search-input').value = id;
+    selectGroup(id);
+  });
+  cy.on('tap', e => { if (e.target === cy) clearSelection(); });
+}
+
+// Graph highlight
+function highlightGroup(nestId) {
+  cy.batch(() => {
+    cy.elements().removeClass('sel-focus sel-neighbor sel-edge dim');
+    cy.elements().addClass('dim');
+
+    const focus = cy.getElementById(nestId);
+    focus.removeClass('dim').addClass('sel-focus');
+
+    const connEdges = focus.connectedEdges('[etype = "hier"]');
+    connEdges.removeClass('dim').addClass('sel-edge');
+    connEdges.connectedNodes('[type = "nest"]').not(focus)
+      .removeClass('dim').addClass('sel-neighbor');
+  });
+
+  const focus     = cy.getElementById(nestId);
+  const neighbors = focus.connectedEdges('[etype = "hier"]').connectedNodes('[type = "nest"]');
+  cy.animate({
+    fit: { eles: focus.union(neighbors), padding: 100 },
+    duration: 500,
+    easing: 'ease-in-out-cubic',
+  });
+}
+
+function clearSelection() {
+  activeGroup = null;
+  patientGenes = {};
+  if (cy) cy.elements().removeClass('sel-focus sel-neighbor sel-edge dim');
+  document.getElementById('splash').style.display = 'flex';
+  document.getElementById('gview').style.display  = 'none';
+  document.getElementById('rlipp-card').style.display = 'none';
+  document.getElementById('search-input').value   = '';
+  document.getElementById('reset-btn').style.display = 'none';
+}
+
+// Select group
+function selectGroup(nestId) {
+  const d = nestData[nestId];
+  if (!d) return;
+  activeGroup = nestId;
+  patientGenes = {};
+
+  highlightGroup(nestId);
+
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('gview').style.display  = 'flex';
+  document.getElementById('gv-name').textContent  = nestId;
+  document.getElementById('gv-annot').textContent =
+    `${d.annotation || 'No annotation'} · ${d.size} genes`;
+  protDescriptions = {};
+  document.getElementById('gv-genes').innerHTML   =
+    d.genes.map(g => `<span class="gene" style="cursor:pointer;" title="Click for description" onclick="showGeneDesc('${g}')">${g}</span>`).join('');
+  document.getElementById('reset-btn').style.display = 'inline-flex';
+
+  if (patientId) {
+    const nestInfo = patientTopNests.find(n => n.nestId === nestId);
+    showRlippCard(nestId, nestInfo || null);
+  } else {
+    document.getElementById('rlipp-card').style.display = 'none';
+  }
+
+  fetchStringImage();
+}
+
+// Search
+function doSearch() {
+  const inp = document.getElementById('search-input');
+  const raw = inp.value.trim();
+  inp.classList.remove('err');
+  if (!raw) return;
+
+  let nestId = nestData[raw] ? raw : null;
+  if (!nestId) {
+    const upper = raw.toUpperCase().startsWith('NEST:') ? raw.toUpperCase() : 'NEST:' + raw.toUpperCase().replace(/^NEST:?/i, '');
+    nestId = nestData[upper] ? upper : null;
+  }
+  if (!nestId) {
+    const lower = raw.toLowerCase();
+    nestId = Object.keys(nestData).find(id =>
+      id.toLowerCase().includes(lower) ||
+      (nestData[id].annotation || '').toLowerCase().includes(lower)
+    ) || null;
+  }
+
+  if (!nestId) {
+    inp.classList.add('err');
+    setTimeout(() => inp.classList.remove('err'), 1200);
+    return;
+  }
+
+  inp.value = nestId;
+  selectGroup(nestId);
+}
+
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+document.getElementById('reset-btn').addEventListener('click', clearSelection);
+document.getElementById('score-sl').addEventListener('input', function () {
+  document.getElementById('score-lbl').textContent = this.value;
+});
+document.getElementById('refresh-btn').addEventListener('click', fetchStringImage);
+document.getElementById('open-btn').addEventListener('click', () => {
+  if (!activeGroup || !nestData[activeGroup]) return;
+  const ids = nestData[activeGroup].genes.join('%0D');
+  window.open(
+    `https://string-db.org/cgi/network?species=9606&identifiers=${ids}&network_flavor=evidence&network_type=physical`,
+    '_blank'
+  );
+});
+
+// Description modal
+document.getElementById('desc-modal-close').addEventListener('click', closeDescModal);
+document.getElementById('desc-modal-bg').addEventListener('click', e => {
+  if (e.target === document.getElementById('desc-modal-bg')) closeDescModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDescModal();
+});
+
+function openDescModal(name, fullText) {
+  document.getElementById('desc-modal-name').textContent = name;
+  document.getElementById('desc-modal-body').innerHTML = fullText;
+  document.getElementById('desc-modal-bg').classList.add('open');
+}
+
+function closeDescModal() {
+  document.getElementById('desc-modal-bg').classList.remove('open');
+}
+
+// STRING image + protein descriptions
+async function fetchStringImage() {
+  if (!activeGroup || !nestData[activeGroup]) return;
+  const { genes } = nestData[activeGroup];
+  if (!genes.length) {
+    document.getElementById('img-area').innerHTML =
+      `<div style="padding:20px;"><div class="error-msg">No genes found for ${activeGroup}.</div></div>`;
+    return;
+  }
+  const score = parseInt(document.getElementById('score-sl').value);
+
+  if (fetchController) fetchController.abort();
+  fetchController = new AbortController();
+  patientGenes = {};
+  patientAlterations = {};
+  geneSummaries = {};
+
+  document.getElementById('img-area').innerHTML =
+    `<div class="loading"><div class="spinner"></div>Fetching STRING network for ${activeGroup}…</div>`;
+  document.getElementById('refresh-btn').disabled = true;
+
+  try {
+    const sig = fetchController.signal;
+    const post = (url, body) => fetch(url, {
+      method: 'POST', signal: sig,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const fetches = [
+      post('/api/string/image', { identifiers: genes, required_score: score, network_type: 'physical', network_flavor: 'evidence' }),
+      post('/api/string/resolve', { identifiers: genes }),
+      post('/api/gene/summaries', { symbols: genes }),
+    ];
+    if (patientId) {
+      fetches.push(post(`/api/patient/${encodeURIComponent(patientId)}/genes`, { genes }));
+      fetches.push(post(`/api/patient/${encodeURIComponent(patientId)}/alterations`, { genes }));
+    }
+
+    const [imgRes, resolveRes, summariesRes, geneRes, altRes] = await Promise.all(fetches);
+
+    if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`);
+    const blob = await imgRes.blob();
+    const url  = URL.createObjectURL(blob);
+
+    if (geneRes && geneRes.ok) {
+      const gd = await geneRes.json();
+      patientGenes = gd.genes || {};
+    }
+    if (altRes && altRes.ok) {
+      const ad = await altRes.json();
+      patientAlterations = ad.alterations || {};
+    }
+    if (summariesRes.ok) {
+      const hits = await summariesRes.json();
+      (Array.isArray(hits) ? hits : []).forEach(h => {
+        if (h.symbol && h.summary) geneSummaries[h.symbol] = h.summary;
+      });
+    }
+
+    document.getElementById('img-area').innerHTML =
+      `<img src="${url}" alt="STRING network — ${activeGroup}">` +
+      `<div id="prot-desc" style="width:100%;"></div>`;
+
+    if (resolveRes.ok) {
+      renderProteinDesc(await resolveRes.json(), document.getElementById('prot-desc'));
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    document.getElementById('img-area').innerHTML =
+      `<div style="padding:20px;"><div class="error-msg">Fetch failed: ${e.message}</div></div>`;
+  } finally {
+    document.getElementById('refresh-btn').disabled = false;
+    fetchController = null;
+  }
+}
+
+function renderProteinDesc(proteins, container) {
+  if (!proteins || !proteins.length) return;
+
+  const byName = {};
+  proteins.forEach(p => {
+    if (p.preferredName && !byName[p.preferredName]) {
+      byName[p.preferredName] = p;
+      protDescriptions[p.preferredName] = p.annotation || '';
+    }
+  });
+  let unique = Object.values(byName);
+  if (patientId && Object.keys(patientGenes).length) {
+    unique = unique.sort((a, b) => {
+      const ia = (patientGenes[a.preferredName] || {}).imp ?? 0;
+      const ib = (patientGenes[b.preferredName] || {}).imp ?? 0;
+      return ib - ia;
+    });
+  }
+
+  const inPtMode = patientId && Object.keys(patientGenes).length > 0;
+
+  let headText = `Protein descriptions — ${unique.length} proteins`;
+  if (inPtMode) headText += ` · colored by patient direction`;
+
+  const head = `<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;`
+    + `color:var(--muted2);margin-bottom:8px;">${headText}</div>`;
+
+  // In patient mode, only render cards with a clear direction (higher or lower)
+  const visibleProteins = inPtMode
+    ? unique.filter(p => { const d = (patientGenes[p.preferredName] || {}).dir; return d === 1 || d === -1; })
+    : unique;
+
+  const cards = visibleProteins.map(p => {
+    const gInfo = patientGenes[p.preferredName] || {};
+    const dir   = gInfo.dir ?? null;
+    let cardCls = 'prot-card';
+    let dirBadge = '';
+
+    if (inPtMode) {
+      if (dir > 0) { cardCls += ' dir-up'; dirBadge = '<span class="prot-card-dir up">higher outcome</span>'; }
+      else         { cardCls += ' dir-dn'; dirBadge = '<span class="prot-card-dir dn">lower outcome</span>'; }
+    }
+
+    const rawDesc = p.annotation || 'No description available.';
+    const descHtml = rawDesc.replace(/;/g, ';<br>');
+    let impLine = '';
+    if (inPtMode && gInfo.imp !== undefined) {
+      const sz = gInfo.sz !== undefined ? (gInfo.sz >= 0 ? '+' : '') + gInfo.sz.toFixed(2) : '—';
+      impLine = `<div style="font-size:9.5px;color:var(--muted2);margin-bottom:2px;">imp=${gInfo.imp.toFixed(3)} · z=${sz} · rho=${(gInfo.rho||0).toFixed(2)}</div>`;
+    }
+    const safeName = p.preferredName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const altBadges = altBadgesHtml(p.preferredName);
+    return `<div class="${cardCls}" style="cursor:pointer;" title="Click for full description" `
+      + `onclick="showGeneDesc('${safeName}')">`
+      + `<div class="prot-card-name">${p.preferredName}${dirBadge}${altBadges}</div>`
+      + impLine
+      + `<div class="prot-card-desc">${descHtml}</div>`
+      + `</div>`;
+  }).join('');
+
+  if (!visibleProteins.length) return;
+  container.innerHTML = head + `<div class="prot-grid">${cards}</div>`;
+}
+
+// Patient mode
+const DIR_COLORS = { '1': '#22c55e', '-1': '#ef4444' };
+
+function applyPatientMode(topNests) {
+  if (!cy) return;
+  patientTopNests = topNests;
+  const topIds = new Set(topNests.map(n => n.nestId));
+
+  cy.batch(() => {
+    cy.nodes('[type = "nest"]').forEach(n => {
+      n.removeClass('patient-top');
+      n.removeStyle('background-color border-color border-width opacity');
+      if (!topIds.has(n.id())) {
+        n.style({ opacity: 0.18 });
+      }
+    });
+
+    // Color top 3 nodes: fill = direction color (green/red only), border = depth color
+    for (const item of topNests) {
+      const node = cy.getElementById(item.nestId);
+      if (!node.length) continue;
+      const depth = node.data('depth') ?? 0;
+      const depthColor = DEPTH_COLORS[Math.min(depth, DEPTH_COLORS.length - 1)];
+      const fill = DIR_COLORS[String(item.dir)];
+      if (!fill) continue;  // skip neutral — no fill if direction is 0
+      node.addClass('patient-top');
+      node.style({
+        'background-color': fill,
+        'border-color': depthColor,
+        'border-width': 5,
+        'opacity': 1,
+      });
+    }
+
+    cy.edges('[etype = "hier"]').forEach(e => {
+      const srcIn = topIds.has(e.source().id()) || e.source().id() === 'NEST';
+      const tgtIn = topIds.has(e.target().id());
+      if (!srcIn && !tgtIn) e.style({ opacity: 0.08 });
+      else e.removeStyle('opacity');
+    });
+  });
+
+  document.getElementById('pt-legend').style.display = 'block';
+}
+
+function clearPatientMode() {
+  patientId       = null;
+  patientTopNests = [];
+  patientPred     = null;
+  patientGenes    = {};
+
+  if (cy) {
+    cy.batch(() => {
+      cy.nodes('[type = "nest"]').removeStyle('background-color border-color border-width opacity');
+      cy.edges('[etype = "hier"]').removeStyle('opacity');
+      assignDepthColors();
+    });
+  }
+
+  document.getElementById('pt-bar').style.display = 'flex';
+  document.getElementById('pt-pred').textContent  = '';
+  document.getElementById('pt-clear-btn').style.display = 'none';
+  document.getElementById('pt-legend').style.display = 'none';
+  document.getElementById('rlipp-card').style.display = 'none';
+  if (activeGroup) {
+    fetchStringImage();
+  }
+}
+
+// RLIPP card
+function showRlippCard(nestId, nestInfo) {
+  const card = document.getElementById('rlipp-card');
+  const valsEl = document.getElementById('rlipp-vals');
+  const bodyEl = document.getElementById('rlipp-body');
+
+  if (!nestInfo) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const ptR   = nestInfo.ptRlipp;
+  const popR  = nestInfo.popRlipp;
+  const dir   = nestInfo.dir;
+  const imp   = nestInfo.imp;
+  const mz    = nestInfo.mz;
+  const pred  = patientPred;
+
+  const tierPt  = ptR  === null ? 'none' : ptR  > 1.2 ? 'high' : ptR  > 1.0 ? 'mid' : 'low';
+  const tierPop = popR === null ? 'none' : popR > 1.2 ? 'high' : popR > 1.0 ? 'mid' : 'low';
+
+  function rlippBadge(v, tier) {
+    if (v === null) return '<span class="rlipp-val rlipp-none">—</span>';
+    const stars = tier === 'high' ? ' *' : tier === 'mid' ? ' ·' : '';
+    return `<span class="rlipp-val rlipp-${tier}">${v.toFixed(3)}${stars}</span>`;
+  }
+
+  valsEl.innerHTML = `&nbsp;Pt-RLIPP: ${rlippBadge(ptR, tierPt)}&nbsp;&nbsp;Pop-RLIPP: ${rlippBadge(popR, tierPop)}`;
+
+  const outcome = patientMeta ? patientMeta.label.replace(/_/g, ' ') : 'outcome';
+  const dirWord = dir > 0 ? `<strong style="color:#16a34a">higher ${outcome}</strong>`
+                : dir < 0 ? `<strong style="color:#dc2626">lower ${outcome}</strong>`
+                : '<span style="color:#64748b">neutral / unclear direction</span>';
+
+  let predCtx = '';
+  if (pred !== null) {
+    const pct = Math.round(pred * 100);
+    predCtx = `<p>Model prediction for this patient: <strong style="color:#b45309">${pct}%</strong> ${outcome}.</p>`;
+  }
+
+  let rlippExplain = '';
+  if (tierPt === 'high') {
+    rlippExplain = `<p><strong>Pt-RLIPP ${ptR.toFixed(2)} &gt; 1.2:</strong> This NEST system acts as a coordinated unit in this patient — the combined activity of its genes contributes more to the model prediction than the sum of individual gene signals.</p>`;
+  } else if (tierPt === 'mid') {
+    rlippExplain = `<p><strong>Pt-RLIPP ${ptR.toFixed(2)} &gt; 1.0:</strong> Moderate pathway-level amplification — this NEST contributes somewhat beyond its individual gene parts.</p>`;
+  } else if (tierPt === 'low') {
+    rlippExplain = `<p><strong>Pt-RLIPP ${ptR !== null ? ptR.toFixed(2) : '—'} &lt; 1.0:</strong> This NEST's importance is largely accounted for by its constituent gene signals.</p>`;
+  }
+
+  if (tierPop === 'high' && popR !== null) {
+    rlippExplain += `<p><strong>Pop-RLIPP ${popR.toFixed(2)} (cohort-validated):</strong> Across the full cohort, this pathway consistently shows emergent importance beyond its genes.</p>`;
+  } else if (tierPop === 'mid' && popR !== null) {
+    rlippExplain += `<p><strong>Pop-RLIPP ${popR.toFixed(2)}:</strong> Mild cohort-level amplification — the pathway trend is present but not dominant across all patients.</p>`;
+  }
+
+  const intro = `<p style="margin-bottom:6px;"><em>RLIPP = term importance squared divided by sum of child importances squared. Values above 1 mean the pathway behaves as a synergistic unit beyond its parts; above 1.2 is cohort-validated.</em></p>`;
+
+  bodyEl.innerHTML = intro + predCtx
+    + `<p>Direction: ${dirWord} (patient embedding deviation z approx ${mz !== null ? mz.toFixed(2) : '—'}).</p>`
+    + rlippExplain
+    + `<p>Importance rank in this patient: <strong>#${patientTopNests.findIndex(n => n.nestId === nestId) + 1}</strong> of ${patientTopNests.length} top systems (raw importance: ${imp.toFixed(4)}).</p>`;
+
+  card.style.display = 'block';
+}
+
+let rlippExpanded = true;
+document.getElementById('rlipp-toggle').addEventListener('click', () => {
+  rlippExpanded = !rlippExpanded;
+  document.getElementById('rlipp-body').style.display = rlippExpanded ? 'block' : 'none';
+  document.querySelector('#rlipp-toggle span:last-child').textContent = rlippExpanded ? '▼' : '▶';
+});
+
+// Patient data loading
+let allPatients = [];
+
+async function loadPatients() {
+  try {
+    const res = await fetch('/api/patients');
+    if (!res.ok) return;
+    const data = await res.json();
+    patientMeta = data.meta;
+    allPatients = data.patients || [];
+    if (!allPatients.length) return;
+
+    const sel = document.getElementById('pt-select');
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = `— select patient (${allPatients.length} total) —`;
+    sel.appendChild(defaultOpt);
+    allPatients.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.id;
+      sel.appendChild(o);
+    });
+
+    document.getElementById('pt-bar').style.display = 'flex';
+
+    const label = patientMeta ? patientMeta.label.replace(/_/g, ' ') : '';
+    document.getElementById('pt-bar').querySelector('label').textContent =
+      `Patient${label ? ` · ${label}` : ''}:`;
+
+  } catch (_) {}
+}
+
+async function selectPatient(pid) {
+  if (!pid) {
+    clearPatientMode();
+    return;
+  }
+  patientId = pid;
+  patientGenes = {};
+
+  try {
+    const res = await fetch(`/api/patient/${encodeURIComponent(pid)}/top-nests`);
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+    patientPred = data.pred;
+    const topNests = data.nests || [];
+
+    const pct = patientPred !== null ? Math.round(patientPred * 100) + '%' : '—';
+    const label = patientMeta ? patientMeta.label.replace(/_/g, ' ') : 'outcome';
+    document.getElementById('pt-pred').textContent = `pred: ${pct} ${label}`;
+    document.getElementById('pt-clear-btn').style.display = 'inline-flex';
+
+    applyPatientMode(topNests);
+
+    if (activeGroup) {
+      const nestInfo = topNests.find(n => n.nestId === activeGroup);
+      showRlippCard(activeGroup, nestInfo || null);
+      fetchStringImage();
+    }
+  } catch (_) {
+    patientId = null;
+  }
+}
+
+document.getElementById('pt-search').addEventListener('input', function () {
+  const q = this.value.toLowerCase();
+  const sel = document.getElementById('pt-select');
+  Array.from(sel.options).forEach(o => {
+    if (!o.value) return;
+    o.style.display = o.value.toLowerCase().includes(q) ? '' : 'none';
+  });
+  const first = allPatients.find(p => p.id.toLowerCase().includes(q));
+  if (first) { sel.value = first.id; selectPatient(first.id); }
+});
+
+document.getElementById('pt-select').addEventListener('change', function () {
+  selectPatient(this.value || null);
+});
+
+document.getElementById('pt-clear-btn').addEventListener('click', () => {
+  document.getElementById('pt-select').value = '';
+  document.getElementById('pt-search').value = '';
+  clearPatientMode();
+});
+
+// Load full NeST Map from NDEx
+async function loadNetwork() {
+  try {
+    const res = await fetch(`/api/nest/${NETWORK_ID}`);
+    if (!res.ok) throw new Error(`NDEx returned HTTP ${res.status}`);
+    const cxData = await res.json();
+
+    const parsed = parseCX(cxData);
+    initGraph(parsed);
+
+    const count = Object.keys(nestData).length;
+    document.getElementById('net-stats').textContent =
+      `${count} NEST groups loaded · click a node or type an ID to explore`;
+    document.getElementById('net-chip').textContent = `${count} complexes`;
+
+    const dl = document.getElementById('nest-list');
+    dl.innerHTML = Object.keys(nestData)
+      .sort((a, b) => parseInt(a.replace('NEST:', '')) - parseInt(b.replace('NEST:', '')))
+      .map(id => `<option value="${id}">${nestData[id].annotation || ''}</option>`)
+      .join('');
+
+  } catch (e) {
+    document.getElementById('load-overlay').innerHTML =
+      `<div class="load-box"><div class="error-msg" style="max-width:340px;">`
+      + `Failed to load NeST Map: ${e.message}</div></div>`;
+    return;
+  }
+  document.getElementById('load-overlay').style.display = 'none';
+}
+
+// Boot
+loadNetwork();
+loadPatients();
+</script>
+</body>
+</html>
