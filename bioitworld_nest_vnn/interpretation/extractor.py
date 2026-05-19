@@ -14,8 +14,10 @@ DATA_OUTPUT = Path(__file__).parent.parent / "data" / "output"
 def _uri_to_path(artifact_uri: str) -> Path:
     """Convert file:// artifact URI to an absolute local Path."""
     parsed = urlparse(artifact_uri)
-    # parsed.path on Windows starts with /C:/..., strip leading slash
-    raw = parsed.path.lstrip("/")
+    raw = parsed.path
+    # On Windows, urlparse gives /C:/... — strip the leading slash before the drive letter
+    if len(raw) >= 3 and raw[0] == "/" and raw[2] == ":":
+        raw = raw[1:]
     return Path(raw)
 
 
