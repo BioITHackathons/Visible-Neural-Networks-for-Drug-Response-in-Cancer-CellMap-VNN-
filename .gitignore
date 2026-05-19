@@ -43,7 +43,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+.claude
+*.claude
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -205,5 +206,5 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks,visualstudiocode
 
-CLAUDE.md
+*CLAUDE.md
 data/output/breast_msk_2025/cbioportal_output/cnv.csv
