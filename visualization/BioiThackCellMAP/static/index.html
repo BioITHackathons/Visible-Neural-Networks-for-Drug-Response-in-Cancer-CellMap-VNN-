@@ -317,6 +317,19 @@ header {
 .rlipp-body { color: #78350f; line-height: 1.55; }
 .rlipp-body p { margin-bottom: 4px; }
 .rlipp-body strong { color: #92400e; }
+
+/* LLM interpretation overlay */
+#llm-nest-interp { margin-top: 10px; padding-top: 8px; border-top: 1px solid #fde68a; }
+.llm-pathway-name { font-weight: 600; font-size: 11.5px; color: #0f4c81; margin-bottom: 4px; }
+.llm-pathway-name a { color: #0969da; font-size: 10px; margin-left: 4px; }
+.llm-bio  { font-size: 10.5px; color: #374151; line-height: 1.45; margin: 3px 0; }
+.llm-clin { font-size: 10.5px; color: #374151; line-height: 1.45; margin: 3px 0; }
+#llm-nest-interp details summary { font-size: 10px; color: #92400e; cursor: pointer;
+  font-weight: 600; margin-top: 4px; }
+.llm-gene-role { font-size: 9px; color: #6b7280; margin-top: 3px; font-style: italic; line-height: 1.3; }
+.llm-drugs { margin-top: 3px; }
+.llm-drugs span { background: #5b21b6; color: #ede9fe; padding: 1px 5px; border-radius: 3px;
+  font-size: 9px; margin: 1px 2px; display: inline-block; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -947,7 +960,12 @@ async function fetchStringImage() {
       `<div id="prot-desc" style="width:100%;"></div>`;
 
     if (resolveRes.ok) {
-      renderProteinDesc(await resolveRes.json(), document.getElementById('prot-desc'));
+      // Fetch LLM gene interpretation in parallel with protein desc render
+      let geneInterp = {};
+      if (patientId) {
+        geneInterp = await fetchGeneInterpretation(patientId, activeGroup);
+      }
+      renderProteinDesc(await resolveRes.json(), document.getElementById('prot-desc'), geneInterp);
     }
   } catch (e) {
     if (e.name === 'AbortError') return;
@@ -959,8 +977,9 @@ async function fetchStringImage() {
   }
 }
 
-function renderProteinDesc(proteins, container) {
+function renderProteinDesc(proteins, container, geneInterp) {
   if (!proteins || !proteins.length) return;
+  geneInterp = geneInterp || {};
 
   const byName = {};
   proteins.forEach(p => {
@@ -1011,11 +1030,18 @@ function renderProteinDesc(proteins, container) {
     }
     const safeName = p.preferredName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const altBadges = altBadgesHtml(p.preferredName);
+    const llmGene = geneInterp[p.preferredName] || {};
+    const roleHtml = llmGene.biological_role
+      ? `<div class="llm-gene-role">${llmGene.biological_role}</div>` : '';
+    const drugsHtml = (llmGene.drugs && llmGene.drugs.length)
+      ? `<div class="llm-drugs">${llmGene.drugs.map(d => `<span>${d}</span>`).join('')}</div>` : '';
     return `<div class="${cardCls}" style="cursor:pointer;" title="Click for full description" `
       + `onclick="showGeneDesc('${safeName}')">`
       + `<div class="prot-card-name">${p.preferredName}${dirBadge}${altBadges}</div>`
       + impLine
       + `<div class="prot-card-desc">${descHtml}</div>`
+      + roleHtml
+      + drugsHtml
       + `</div>`;
   }).join('');
 
@@ -1093,6 +1119,22 @@ function clearPatientMode() {
 }
 
 // RLIPP card
+// ── LLM interpretation helpers ────────────────────────────────────────────────
+async function fetchNestInterpretation(patientId, nestId) {
+  try {
+    const res = await fetch(`/api/patient/${encodeURIComponent(patientId)}/nest-interpretation/${encodeURIComponent(nestId)}`);
+    return res.ok ? res.json() : {};
+  } catch (_) { return {}; }
+}
+
+async function fetchGeneInterpretation(patientId, nestId) {
+  try {
+    const res = await fetch(`/api/patient/${encodeURIComponent(patientId)}/gene-interpretation/${encodeURIComponent(nestId)}`);
+    return res.ok ? res.json() : {};
+  } catch (_) { return {}; }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function showRlippCard(nestId, nestInfo) {
   const card = document.getElementById('rlipp-card');
   const valsEl = document.getElementById('rlipp-vals');
@@ -1155,6 +1197,26 @@ function showRlippCard(nestId, nestInfo) {
     + `<p>Importance rank in this patient: <strong>#${patientTopNests.findIndex(n => n.nestId === nestId) + 1}</strong> of ${patientTopNests.length} top systems (raw importance: ${imp.toFixed(4)}).</p>`;
 
   card.style.display = 'block';
+
+  // Async: append LLM interpretation if available
+  if (patientId) {
+    fetchNestInterpretation(patientId, nestId).then(interp => {
+      if (!interp.biological_explanation) return;
+      const reactomeHtml = (interp.reactome_link && interp.reactome_link.startsWith('http'))
+        ? `<a href="${interp.reactome_link}" target="_blank" rel="noopener">[Reactome ↗]</a>` : '';
+      const clinHtml = interp.clinical_reasoning
+        ? `<details><summary>Clinical reasoning</summary><p class="llm-clin">${interp.clinical_reasoning}</p></details>` : '';
+      const block = `<div id="llm-nest-interp">
+        <div class="llm-pathway-name">&#129516; ${interp.pathway_name || nestId} ${reactomeHtml}</div>
+        <p class="llm-bio">${interp.biological_explanation}</p>
+        ${clinHtml}
+      </div>`;
+      // Remove any stale block then append
+      const old = document.getElementById('llm-nest-interp');
+      if (old) old.remove();
+      bodyEl.insertAdjacentHTML('beforeend', block);
+    });
+  }
 }
 
 let rlippExpanded = true;

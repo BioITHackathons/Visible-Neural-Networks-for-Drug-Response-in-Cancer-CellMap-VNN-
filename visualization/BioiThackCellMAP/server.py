@@ -7,7 +7,17 @@ from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import requests
 import os
+import sys
+import json as _json
 import patient_loader
+
+# Import interpretation DB from sibling repo
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'bioitworld_nest_vnn'))
+try:
+    from interpretation.db import DB_PATH, get_nests, get_genes
+    _interp_available = True
+except ImportError:
+    _interp_available = False
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -226,6 +236,66 @@ def get_patient_genes(patient_id):
     if result is None:
         return jsonify({"error": f"patient '{patient_id}' not found"}), 404
     return jsonify({"patientId": patient_id, "genes": result})
+
+
+# ── LLM interpretation endpoints ─────────────────────────────────────────────
+
+def _default_study_label():
+    """Fall back to the study/label loaded by patient_loader."""
+    meta = patient_loader.get_meta()
+    return meta.get('study', ''), meta.get('label', '')
+
+
+@app.route("/api/patient/<path:patient_id>/nest-interpretation/<nest_id>", methods=["GET"])
+def get_nest_interpretation(patient_id, nest_id):
+    """Return LLM interpretation for one patient+NEST from the SQLite DB."""
+    if not _interp_available:
+        return jsonify({}), 200
+    study_id = request.args.get('study_id') or _default_study_label()[0]
+    label    = request.args.get('label')    or _default_study_label()[1]
+    try:
+        nests = get_nests(patient_id, study_id, label, DB_PATH)
+        nest  = next((n for n in nests if n['nest_id'] == nest_id), None)
+        if nest is None:
+            return jsonify({}), 200
+        return jsonify({
+            'pathway_name':          nest.get('pathway_name') or '',
+            'reactome_link':         nest.get('reactome_link') or '',
+            'biological_explanation':nest.get('biological_explanation') or '',
+            'clinical_reasoning':    nest.get('clinical_reasoning') or '',
+            'outcome_direction':     nest.get('outcome_direction') or '',
+            'importance_score':      nest.get('importance_score'),
+            'rlipp_score':           nest.get('rlipp_score'),
+            'population_rlipp':      nest.get('population_rlipp'),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/patient/<path:patient_id>/gene-interpretation/<nest_id>", methods=["GET"])
+def get_gene_interpretation(patient_id, nest_id):
+    """Return LLM gene interpretations for one patient+NEST from the SQLite DB."""
+    if not _interp_available:
+        return jsonify({}), 200
+    study_id = request.args.get('study_id') or _default_study_label()[0]
+    label    = request.args.get('label')    or _default_study_label()[1]
+    try:
+        genes = get_genes(patient_id, study_id, label, nest_id, DB_PATH)
+        result = {}
+        for g in genes:
+            try:
+                drugs = _json.loads(g['drugs']) if g.get('drugs') else []
+            except Exception:
+                drugs = [g['drugs']] if g.get('drugs') else []
+            result[g['gene_name']] = {
+                'biological_role':  g.get('biological_role') or '',
+                'drugs':            drugs,
+                'alteration_type':  g.get('alteration_type') or '',
+                'outcome_direction':g.get('outcome_direction') or '',
+            }
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == "__main__":
