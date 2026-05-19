@@ -50,7 +50,7 @@ For each patient, provide a structured clinical interpretation. You MUST follow 
 - Use ONLY the gene and pathway information provided. Do not invent patient data.
 - For Reactome links: only include a link if you are confident the pathway ID is correct.
 - For Targeted Therapies: focus on FDA-approved targeted agents or active clinical trials; use "None known" if not applicable.
-- Drug information is pre-populated from the CFDE Druggable Genome catalogue (DGIdb, approved drugs only). Use ONLY the listed drugs for each gene. If no drugs are listed, write "None known".
+- Drug information is pre-populated from the CFDE IDG Druggable Genome catalogue (Pharos/TCRD, Tclin targets only). Use ONLY the listed drugs for each gene. If no drugs are listed, write "None known".
 - Keep each section concise. This output will be stored in a database and displayed to oncologists.
 - Process ALL patients in the batch before finishing. Use "---" as the separator between patients.
 """
