@@ -1,0 +1,1246 @@
+{
+  "AURKB": [
+    "Copanlisib"
+  ],
+  "ALK": [
+    "Alectinib",
+    "Lorlatinib",
+    "Brigatinib",
+    "Crizotinib",
+    "Ceritinib",
+    "Brentuximab Vedotin",
+    "Atezolizumab",
+    "Entrectinib",
+    "Nivolumab",
+    "Pembrolizumab"
+  ],
+  "BTK": [
+    "Ibrutinib"
+  ],
+  "AKT3": [
+    "Capivasertib",
+    "Everolimus",
+    "Vemurafenib"
+  ],
+  "AKT2": [
+    "Capivasertib",
+    "Trastuzumab",
+    "Everolimus"
+  ],
+  "AKT1": [
+    "Capivasertib",
+    "Nelfinavir",
+    "Everolimus",
+    "Fulvestrant",
+    "Dabrafenib",
+    "Vemurafenib"
+  ],
+  "BAP1": [
+    "Panobinostat",
+    "Everolimus",
+    "Olaparib",
+    "Sunitinib",
+    "Vorinostat",
+    "Valproic Acid"
+  ],
+  "BARD1": [
+    "Olaparib"
+  ],
+  "ATR": [
+    "Talazoparib",
+    "Niraparib",
+    "Temozolomide",
+    "Olaparib",
+    "Rucaparib"
+  ],
+  "AURKA": [
+    "Tamoxifen",
+    "Paclitaxel",
+    "Fluorouracil",
+    "Cisplatin"
+  ],
+  "B2M": [
+    "Pembrolizumab"
+  ],
+  "BCL2": [
+    "Venetoclax",
+    "Oxaliplatin",
+    "Paclitaxel",
+    "Cisplatin",
+    "Docetaxel",
+    "Bortezomib",
+    "Carboplatin"
+  ],
+  "BRCA2": [
+    "Olaparib",
+    "Rucaparib",
+    "Niraparib",
+    "Talazoparib",
+    "Enzalutamide",
+    "Temozolomide",
+    "Bosutinib",
+    "Cisplatin",
+    "Dasatinib",
+    "Carboplatin",
+    "Gemcitabine"
+  ],
+  "ATRX": [
+    "Temozolomide",
+    "Talazoparib",
+    "Olaparib",
+    "Fluorouracil",
+    "Cisplatin"
+  ],
+  "ABL1": [
+    "Asciminib",
+    "Ponatinib",
+    "Nilotinib",
+    "Bosutinib",
+    "Omacetaxine",
+    "Omacetaxine Mepesuccinate",
+    "Inotuzumab Ozogamicin",
+    "Dasatinib",
+    "Imatinib",
+    "Blinatumomab",
+    "Axitinib",
+    "Busulfan",
+    "Regorafenib",
+    "Masitinib",
+    "Venetoclax"
+  ],
+  "CBL": [
+    "Dasatinib"
+  ],
+  "CALR": [
+    "Peginterferon Alfa-2A"
+  ],
+  "BRCA1": [
+    "Rucaparib",
+    "Niraparib",
+    "Olaparib",
+    "Talazoparib",
+    "Oxaliplatin",
+    "Cisplatin",
+    "Gemcitabine",
+    "Carboplatin"
+  ],
+  "ARAF": [
+    "Tovorafenib",
+    "Encorafenib",
+    "Cobimetinib",
+    "Sorafenib",
+    "Regorafenib",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "ARID1A": [
+    "Atezolizumab",
+    "Nivolumab",
+    "Trastuzumab",
+    "Pembrolizumab",
+    "Dasatinib",
+    "Sorafenib"
+  ],
+  "ATM": [
+    "Olaparib",
+    "Rucaparib",
+    "Talazoparib",
+    "Temozolomide",
+    "Niraparib",
+    "Irinotecan",
+    "Selumetinib",
+    "Trametinib Dimethyl Sulfoxide",
+    "Cisplatin",
+    "Doxorubicin"
+  ],
+  "BRAF": [
+    "Dabrafenib",
+    "Vemurafenib",
+    "Encorafenib",
+    "Trametinib Dimethyl Sulfoxide",
+    "Panitumumab",
+    "Cetuximab",
+    "Binimetinib",
+    "Cobimetinib",
+    "Tovorafenib",
+    "Selumetinib",
+    "Nivolumab",
+    "Sorafenib",
+    "Atezolizumab",
+    "Dasatinib",
+    "Regorafenib"
+  ],
+  "AR": [
+    "Apalutamide",
+    "Oxandrolone",
+    "Dromostanolone",
+    "Nandrolone Decanoate",
+    "Clascoterone",
+    "Fluoxymesterone",
+    "Bicalutamide",
+    "Darolutamide",
+    "Nilutamide",
+    "Cyproterone",
+    "Methyltestosterone",
+    "Enzalutamide",
+    "Drospirenone",
+    "Flutamide",
+    "Abiraterone"
+  ],
+  "CDK12": [
+    "Cemiplimab",
+    "Nivolumab",
+    "Pembrolizumab",
+    "Olaparib"
+  ],
+  "CCND3": [
+    "Ribociclib",
+    "Abemaciclib",
+    "Palbociclib"
+  ],
+  "CDK4": [
+    "Ribociclib",
+    "Abemaciclib",
+    "Palbociclib",
+    "Alpelisib"
+  ],
+  "CXCR4": [
+    "Mavorixafor",
+    "Plerixafor",
+    "Motixafortide",
+    "Cisplatin"
+  ],
+  "CDKN2A": [
+    "Palbociclib",
+    "Abemaciclib",
+    "Ribociclib",
+    "Dabrafenib",
+    "Vemurafenib",
+    "Letrozole",
+    "Panitumumab"
+  ],
+  "CCNE1": [
+    "Fulvestrant",
+    "Palbociclib"
+  ],
+  "CCND2": [
+    "Ribociclib",
+    "Abemaciclib",
+    "Palbociclib"
+  ],
+  "CHEK1": [
+    "Olaparib",
+    "Cisplatin"
+  ],
+  "CDKN2B": [
+    "Palbociclib"
+  ],
+  "CSF1R": [
+    "Pexidartinib",
+    "Imatinib",
+    "Masitinib",
+    "Dasatinib"
+  ],
+  "CDK6": [
+    "Ribociclib",
+    "Abemaciclib",
+    "Palbociclib",
+    "Fulvestrant"
+  ],
+  "CSF3R": [
+    "Tbo-Filgrastim",
+    "Pegfilgrastim",
+    "Ruxolitinib",
+    "Dasatinib"
+  ],
+  "CIC": [
+    "Selumetinib",
+    "Vemurafenib",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "CDKN1A": [
+    "Fluorouracil"
+  ],
+  "CD274": [
+    "Avelumab",
+    "Atezolizumab",
+    "Durvalumab",
+    "Nivolumab",
+    "Pembrolizumab"
+  ],
+  "EGFR": [
+    "Afatinib",
+    "Mobocertinib",
+    "Necitumumab",
+    "Cetuximab",
+    "Dacomitinib",
+    "Erlotinib",
+    "Neratinib",
+    "Lapatinib",
+    "Amivantamab",
+    "Olmutinib",
+    "Panitumumab",
+    "Osimertinib",
+    "Ramucirumab",
+    "Lazertinib",
+    "Vandetanib"
+  ],
+  "CDH1": [
+    "Bicalutamide"
+  ],
+  "CHEK2": [
+    "Olaparib"
+  ],
+  "CDKN1B": [
+    "Lapatinib"
+  ],
+  "CCND1": [
+    "Ribociclib",
+    "Palbociclib",
+    "Tamoxifen",
+    "Abemaciclib",
+    "Arsenic Trioxide",
+    "Bortezomib"
+  ],
+  "DNMT3A": [
+    "Decitabine",
+    "Idarubicin",
+    "Daunorubicin Liposomal"
+  ],
+  "CREBBP": [
+    "Methylphenidate"
+  ],
+  "DNMT1": [
+    "Decitabine",
+    "Azacitidine",
+    "Ifosfamide",
+    "Cisplatin"
+  ],
+  "CRLF2": [
+    "Sirolimus"
+  ],
+  "DDR2": [
+    "Erlotinib",
+    "Dasatinib",
+    "Regorafenib"
+  ],
+  "CTNNB1": [
+    "Everolimus",
+    "Letrozole"
+  ],
+  "CRKL": [
+    "Gefitinib",
+    "Dasatinib"
+  ],
+  "ERBB4": [
+    "Dacomitinib",
+    "Lapatinib",
+    "Afatinib",
+    "Gefitinib"
+  ],
+  "ESR1": [
+    "Elacestrant",
+    "Estriol",
+    "Lasofoxifene",
+    "Megestrol",
+    "Iodine",
+    "Estrogen",
+    "Fulvestrant",
+    "Quinestrol",
+    "Chlorotrianisene",
+    "Clomiphene",
+    "Dienestrol",
+    "Ospemifene",
+    "Estrogens, Conjugated (Usp)",
+    "Ethynodiol Diacetate",
+    "Raloxifen"
+  ],
+  "ERCC4": [
+    "Cisplatin"
+  ],
+  "GATA2": [
+    "Bortezomib"
+  ],
+  "ETV1": [
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "FLT3": [
+    "Quizartinib",
+    "Midostaurin",
+    "Gilteritinib",
+    "Ponatinib",
+    "Pacritinib",
+    "Venetoclax",
+    "Tirbanibulin",
+    "Pexidartinib",
+    "Sorafenib",
+    "Selinexor",
+    "Sunitinib",
+    "Azacitidine",
+    "Cabozantinib S-Malate",
+    "Daunorubicin Liposomal",
+    "Nilotinib"
+  ],
+  "FGFR4": [
+    "Palifermin",
+    "Infigratinib",
+    "Ponatinib",
+    "Erlotinib"
+  ],
+  "FANCC": [
+    "Chlorambucil",
+    "Melphalan",
+    "Mitomycin",
+    "Cisplatin",
+    "Gemcitabine"
+  ],
+  "ERBB2": [
+    "Neratinib",
+    "Pertuzumab",
+    "Trastuzumab",
+    "Dacomitinib",
+    "Margetuximab",
+    "Lapatinib",
+    "Fam-Trastuzumab Deruxtecan-Nxki",
+    "Tipiracil",
+    "Tucatinib",
+    "Afatinib",
+    "Ado-Trastuzumab Emtansine",
+    "Trifluridine",
+    "Abemaciclib",
+    "Everolimus",
+    "Osimertinib"
+  ],
+  "FLCN": [
+    "Everolimus",
+    "Sirolimus"
+  ],
+  "FANCA": [
+    "Olaparib",
+    "Cisplatin"
+  ],
+  "FLT4": [
+    "Tivozanib",
+    "Fruquintinib",
+    "Axitinib",
+    "Sunitinib",
+    "Nintedanib Esylate",
+    "Lenvatinib",
+    "Pazopanib",
+    "Regorafenib",
+    "Vandetanib",
+    "Rabeprazole",
+    "Sorafenib"
+  ],
+  "FBXW7": [
+    "Sirolimus"
+  ],
+  "FYN": [
+    "Dasatinib"
+  ],
+  "EPCAM": [
+    "Catumaxomab"
+  ],
+  "ERBB3": [
+    "Pertuzumab",
+    "Trastuzumab",
+    "Dacomitinib",
+    "Lapatinib",
+    "Afatinib",
+    "Momelotinib",
+    "Gefitinib",
+    "Selumetinib",
+    "Cetuximab",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "FGFR1": [
+    "Pemigatinib",
+    "Erdafitinib",
+    "Infigratinib",
+    "Nintedanib Esylate",
+    "Ponatinib",
+    "Lenvatinib",
+    "Palifermin",
+    "Regorafenib",
+    "Pazopanib",
+    "Rabeprazole",
+    "Masitinib",
+    "Docetaxel"
+  ],
+  "FGFR3": [
+    "Erdafitinib",
+    "Infigratinib",
+    "Futibatinib",
+    "Nintedanib Esylate",
+    "Ponatinib",
+    "Palifermin",
+    "Masitinib",
+    "Bortezomib",
+    "Pazopanib",
+    "Rabeprazole",
+    "Midostaurin",
+    "Cisplatin",
+    "Gemcitabine"
+  ],
+  "EZH2": [
+    "Tazemetostat"
+  ],
+  "FGFR2": [
+    "Erdafitinib",
+    "Infigratinib",
+    "Ponatinib",
+    "Palifermin",
+    "Lenvatinib",
+    "Nintedanib Esylate",
+    "Regorafenib",
+    "Pazopanib",
+    "Fulvestrant",
+    "Rabeprazole",
+    "Masitinib",
+    "Thalidomide"
+  ],
+  "FLT1": [
+    "Tivozanib",
+    "Fruquintinib",
+    "Axitinib",
+    "Sunitinib",
+    "Nintedanib Esylate",
+    "Pazopanib",
+    "Regorafenib",
+    "Lenvatinib",
+    "Vandetanib",
+    "Rabeprazole",
+    "Sorafenib"
+  ],
+  "FGF4": [
+    "Pentosan Polysulfate"
+  ],
+  "ERCC2": [
+    "Cisplatin",
+    "Carboplatin",
+    "Paclitaxel"
+  ],
+  "FGF3": [
+    "Sorafenib"
+  ],
+  "IGF1R": [
+    "Mecasermin",
+    "Exemestane",
+    "Masoprocol",
+    "Crizotinib",
+    "Metformin",
+    "Erlotinib",
+    "Gefitinib"
+  ],
+  "KMT2A": [
+    "Belinostat",
+    "Daunorubicin Liposomal"
+  ],
+  "KMT2D": [
+    "Bicalutamide"
+  ],
+  "KDM6A": [
+    "Tazemetostat",
+    "Venetoclax",
+    "Olaparib"
+  ],
+  "KDM5C": [
+    "Everolimus",
+    "Sunitinib"
+  ],
+  "INSR": [
+    "Insulin Detemir",
+    "Insulin Aspart Protamine, Human",
+    "Insulin Glargine",
+    "Insulin Glulisine, Human",
+    "Insulin, Regular, Human"
+  ],
+  "KIT": [
+    "Avapritinib",
+    "Ripretinib",
+    "Imatinib",
+    "Nilotinib",
+    "Quizartinib",
+    "Sunitinib",
+    "Regorafenib",
+    "Ponatinib",
+    "Dasatinib",
+    "Pexidartinib",
+    "Midostaurin",
+    "Masitinib",
+    "Axitinib",
+    "Cabozantinib S-Malate",
+    "Sorafenib"
+  ],
+  "JAK2": [
+    "Ruxolitinib",
+    "Fedratinib",
+    "Pacritinib",
+    "Filgotinib",
+    "Baricitinib",
+    "Pembrolizumab",
+    "Peginterferon Alfa-2B",
+    "Sirolimus"
+  ],
+  "JAK1": [
+    "Ruxolitinib",
+    "Peficitinib",
+    "Filgotinib",
+    "Baricitinib",
+    "Pembrolizumab"
+  ],
+  "IDH2": [
+    "Enasidenib",
+    "Vorasidenib",
+    "Venetoclax",
+    "Dasatinib"
+  ],
+  "JAK3": [
+    "Tofacitinib",
+    "Peficitinib",
+    "Atezolizumab"
+  ],
+  "IFNGR1": [
+    "Interferon Gamma-1B"
+  ],
+  "IKZF1": [
+    "Fludarabine",
+    "Imatinib",
+    "Cytarabine",
+    "Daunorubicin Liposomal",
+    "Methotrexate"
+  ],
+  "LYN": [
+    "Masitinib",
+    "Dasatinib"
+  ],
+  "GRIN2A": [
+    "Memantine",
+    "Felbamate"
+  ],
+  "JUN": [
+    "Arsenic Trioxide"
+  ],
+  "IGF2": [
+    "Cabazitaxel",
+    "Docetaxel",
+    "Gemcitabine"
+  ],
+  "IL7R": [
+    "Ruxolitinib"
+  ],
+  "GNA11": [
+    "Selumetinib",
+    "Cabozantinib S-Malate",
+    "Vorinostat"
+  ],
+  "HGF": [
+    "Cabozantinib S-Malate",
+    "Trastuzumab"
+  ],
+  "GNAS": [
+    "Fluorouracil",
+    "Cisplatin"
+  ],
+  "HRAS": [
+    "Selumetinib",
+    "Binimetinib",
+    "Everolimus"
+  ],
+  "KDR": [
+    "Ramucirumab",
+    "Tivozanib",
+    "Fruquintinib",
+    "Axitinib",
+    "Nintedanib Esylate",
+    "Cabozantinib S-Malate",
+    "Sunitinib",
+    "Lenvatinib",
+    "Pazopanib",
+    "Sorafenib",
+    "Regorafenib",
+    "Vandetanib",
+    "Rabeprazole",
+    "Midostaurin",
+    "Ponatinib"
+  ],
+  "KRAS": [
+    "Panitumumab",
+    "Adagrasib",
+    "Sotorasib",
+    "Cetuximab",
+    "Teprotumumab",
+    "Encorafenib",
+    "Binimetinib",
+    "Selumetinib",
+    "Trametinib Dimethyl Sulfoxide",
+    "Abemaciclib",
+    "Cobimetinib",
+    "Regorafenib",
+    "Decitabine",
+    "Temsirolimus",
+    "Afatinib"
+  ],
+  "MYCN": [
+    "Dinutuximab",
+    "Sonidegib",
+    "Niraparib",
+    "Arsenic Trioxide",
+    "Talazoparib",
+    "Panobinostat",
+    "Olaparib"
+  ],
+  "MTOR": [
+    "Everolimus",
+    "Temsirolimus",
+    "Pimecrolimus",
+    "Sirolimus",
+    "Sapanisertib",
+    "Capivasertib",
+    "Infigratinib",
+    "Alpelisib",
+    "Metformin",
+    "Pazopanib"
+  ],
+  "MITF": [
+    "Dabrafenib",
+    "Selumetinib",
+    "Vemurafenib"
+  ],
+  "MET": [
+    "Capmatinib",
+    "Tepotinib",
+    "Crizotinib",
+    "Cabozantinib S-Malate",
+    "Osimertinib",
+    "Trastuzumab",
+    "Erlotinib",
+    "Gefitinib",
+    "Vemurafenib",
+    "Panitumumab",
+    "Lapatinib",
+    "Pembrolizumab",
+    "Selumetinib",
+    "Cetuximab",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "MPL": [
+    "Eltrombopag",
+    "Romiplostim"
+  ],
+  "MDM4": [
+    "Atezolizumab",
+    "Nivolumab",
+    "Pembrolizumab"
+  ],
+  "NF1": [
+    "Everolimus",
+    "Trametinib Dimethyl Sulfoxide",
+    "Vemurafenib",
+    "Cobimetinib",
+    "Binimetinib",
+    "Selumetinib",
+    "Bevacizumab",
+    "Pexidartinib",
+    "Nilotinib",
+    "Dabrafenib",
+    "Sirolimus",
+    "Vinblastine",
+    "Erlotinib",
+    "Pazopanib",
+    "Tamoxifen"
+  ],
+  "NOTCH1": [
+    "Nirogacestat"
+  ],
+  "MAP2K4": [
+    "Cobimetinib",
+    "Binimetinib",
+    "Dabrafenib",
+    "Selumetinib",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "NOTCH3": [
+    "Nirogacestat"
+  ],
+  "MYC": [
+    "Temozolomide",
+    "Ibrutinib",
+    "Olaparib",
+    "Cisplatin"
+  ],
+  "NF2": [
+    "Bevacizumab",
+    "Lapatinib",
+    "Everolimus",
+    "Temsirolimus",
+    "Octreotide",
+    "Imatinib",
+    "Selumetinib",
+    "Cetuximab",
+    "Erlotinib",
+    "Carboplatin",
+    "Cisplatin"
+  ],
+  "MAPK3": [
+    "Arsenic Trioxide"
+  ],
+  "MAPK1": [
+    "Arsenic Trioxide",
+    "Erlotinib"
+  ],
+  "NOTCH4": [
+    "Nirogacestat"
+  ],
+  "MAP2K1": [
+    "Cobimetinib",
+    "Trametinib Dimethyl Sulfoxide",
+    "Selumetinib",
+    "Binimetinib",
+    "Dabrafenib",
+    "Vemurafenib",
+    "Panitumumab",
+    "Cetuximab",
+    "Sorafenib"
+  ],
+  "MAP2K2": [
+    "Cobimetinib",
+    "Binimetinib",
+    "Selumetinib",
+    "Trametinib Dimethyl Sulfoxide",
+    "Dabrafenib",
+    "Vemurafenib"
+  ],
+  "MSH2": [
+    "Durvalumab"
+  ],
+  "NOTCH2": [
+    "Nirogacestat"
+  ],
+  "MAPKAP1": [
+    "Sapanisertib"
+  ],
+  "MDM2": [
+    "Ipilimumab",
+    "Nivolumab",
+    "Pembrolizumab",
+    "Cisplatin"
+  ],
+  "NFE2L2": [
+    "Sapanisertib"
+  ],
+  "MSH6": [
+    "Durvalumab"
+  ],
+  "NTRK2": [
+    "Larotrectinib",
+    "Entrectinib",
+    "Crizotinib"
+  ],
+  "PMS2": [
+    "Nivolumab"
+  ],
+  "PTEN": [
+    "Capivasertib",
+    "Temsirolimus",
+    "Everolimus",
+    "Alpelisib",
+    "Enzalutamide",
+    "Nivolumab",
+    "Vemurafenib",
+    "Cetuximab",
+    "Pembrolizumab",
+    "Panitumumab",
+    "Copanlisib",
+    "Paclitaxel",
+    "Trastuzumab",
+    "Carboplatin",
+    "Sirolimus"
+  ],
+  "PDGFRB": [
+    "Becaplermin",
+    "Nintedanib Esylate",
+    "Sunitinib",
+    "Masitinib",
+    "Axitinib",
+    "Imatinib",
+    "Regorafenib",
+    "Pazopanib",
+    "Sorafenib",
+    "Dasatinib",
+    "Nilotinib",
+    "Lenvatinib"
+  ],
+  "PREX2": [
+    "Vemurafenib"
+  ],
+  "PDCD1LG2": [
+    "Pembrolizumab"
+  ],
+  "PIK3CB": [
+    "Copanlisib",
+    "Alpelisib",
+    "Quercetin",
+    "Infigratinib"
+  ],
+  "PIM1": [
+    "Ibrutinib"
+  ],
+  "PIK3CG": [
+    "Copanlisib",
+    "Alpelisib",
+    "Infigratinib",
+    "Quercetin"
+  ],
+  "PIK3R1": [
+    "Copanlisib",
+    "Alpelisib",
+    "Infigratinib",
+    "Quercetin"
+  ],
+  "PIK3CD": [
+    "Idelalisib",
+    "Copanlisib",
+    "Alpelisib",
+    "Infigratinib",
+    "Quercetin"
+  ],
+  "PIK3R2": [
+    "Copanlisib",
+    "Alpelisib",
+    "Infigratinib",
+    "Vemurafenib",
+    "Quercetin"
+  ],
+  "POLE": [
+    "Pembrolizumab"
+  ],
+  "PIK3R3": [
+    "Copanlisib",
+    "Alpelisib",
+    "Infigratinib",
+    "Quercetin"
+  ],
+  "PGR": [
+    "Ulipristal",
+    "Megestrol",
+    "Etonogestrel",
+    "Gestodene",
+    "Ethynodiol Diacetate",
+    "Dydrogesterone",
+    "Desogestrel",
+    "Progestogen",
+    "Norgestimate",
+    "Drospirenone",
+    "Norelgestromin",
+    "Levonorgestrel",
+    "Norgestrel",
+    "Dienogest",
+    "Norethindrone"
+  ],
+  "PTCH1": [
+    "Vismodegib",
+    "Sonidegib"
+  ],
+  "NTRK1": [
+    "Larotrectinib",
+    "Repotrectinib",
+    "Entrectinib",
+    "Regorafenib",
+    "Crizotinib",
+    "Imatinib"
+  ],
+  "PIK3C3": [
+    "Copanlisib",
+    "Infigratinib",
+    "Alpelisib",
+    "Quercetin"
+  ],
+  "PIK3CA": [
+    "Inavolisib",
+    "Alpelisib",
+    "Capivasertib",
+    "Temsirolimus",
+    "Copanlisib",
+    "Everolimus",
+    "Idelalisib",
+    "Cetuximab",
+    "Sulindac",
+    "Sirolimus",
+    "Trastuzumab",
+    "Ribociclib",
+    "Lapatinib",
+    "Palbociclib",
+    "Vemurafenib"
+  ],
+  "PRKCI": [
+    "Ingenol Mebutate",
+    "Quercetin"
+  ],
+  "PARP1": [
+    "Niraparib",
+    "Trabectedin",
+    "Olaparib",
+    "Rucaparib"
+  ],
+  "NTRK3": [
+    "Larotrectinib",
+    "Repotrectinib",
+    "Entrectinib",
+    "Midostaurin",
+    "Crizotinib"
+  ],
+  "PALB2": [
+    "Rucaparib",
+    "Mitomycin",
+    "Talazoparib",
+    "Olaparib"
+  ],
+  "PIK3C2G": [
+    "Copanlisib",
+    "Infigratinib",
+    "Alpelisib",
+    "Quercetin"
+  ],
+  "PRKD1": [
+    "Quercetin"
+  ],
+  "PDGFRA": [
+    "Olaratumab",
+    "Becaplermin",
+    "Avapritinib",
+    "Ripretinib",
+    "Sunitinib",
+    "Ramucirumab",
+    "Imatinib",
+    "Dasatinib",
+    "Masitinib",
+    "Nintedanib Esylate",
+    "Ponatinib",
+    "Pazopanib",
+    "Regorafenib",
+    "Nilotinib",
+    "Midostaurin"
+  ],
+  "PBRM1": [
+    "Everolimus",
+    "Ipilimumab",
+    "Atezolizumab",
+    "Nivolumab",
+    "Durvalumab",
+    "Sunitinib",
+    "Pembrolizumab"
+  ],
+  "PDCD1": [
+    "Nivolumab",
+    "Pembrolizumab"
+  ],
+  "PLCG2": [
+    "Ibrutinib"
+  ],
+  "RIT1": [
+    "Selumetinib"
+  ],
+  "RARA": [
+    "Tamibarotene",
+    "Tazarotene",
+    "Adapalene",
+    "Acitretin",
+    "Isotretinoin",
+    "Tretinoin",
+    "Fenretinide"
+  ],
+  "SH2B3": [
+    "Ruxolitinib"
+  ],
+  "RAD50": [
+    "Irinotecan"
+  ],
+  "RB1": [
+    "Ribociclib",
+    "Palbociclib",
+    "Niraparib",
+    "Talazoparib",
+    "Alpelisib",
+    "Olaparib",
+    "Cisplatin"
+  ],
+  "RXRA": [
+    "Bexarotene",
+    "Adapalene"
+  ],
+  "SMAD4": [
+    "Lysine",
+    "Cetuximab",
+    "Gemcitabine",
+    "Fluorouracil"
+  ],
+  "SF3B1": [
+    "Olaparib",
+    "Etoposide"
+  ],
+  "RICTOR": [
+    "Sapanisertib"
+  ],
+  "RPTOR": [
+    "Temsirolimus",
+    "Sapanisertib",
+    "Sirolimus"
+  ],
+  "RAD54L": [
+    "Olaparib"
+  ],
+  "RUNX1": [
+    "Cytarabine"
+  ],
+  "RET": [
+    "Selpercatinib",
+    "Pralsetinib",
+    "Cabozantinib S-Malate",
+    "Vandetanib",
+    "Sunitinib",
+    "Ponatinib",
+    "Regorafenib",
+    "Lenvatinib",
+    "Sorafenib",
+    "Imatinib",
+    "Sapanisertib",
+    "Nintedanib Esylate"
+  ],
+  "ROS1": [
+    "Crizotinib",
+    "Lorlatinib",
+    "Repotrectinib",
+    "Ceritinib",
+    "Brigatinib",
+    "Cabozantinib S-Malate",
+    "Entrectinib"
+  ],
+  "RASA1": [
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "RAF1": [
+    "Tovorafenib",
+    "Encorafenib",
+    "Regorafenib",
+    "Sorafenib",
+    "Cobimetinib",
+    "Trametinib Dimethyl Sulfoxide"
+  ],
+  "PTPRD": [
+    "Teprotumumab",
+    "Temsirolimus"
+  ],
+  "SMARCA4": [
+    "Tazemetostat",
+    "Palbociclib",
+    "Ribociclib",
+    "Abemaciclib",
+    "Vinorelbine",
+    "Cisplatin"
+  ],
+  "STK11": [
+    "Phenformin",
+    "Everolimus",
+    "Atezolizumab",
+    "Nivolumab",
+    "Pembrolizumab",
+    "Selumetinib",
+    "Docetaxel"
+  ],
+  "VHL": [
+    "Axitinib",
+    "Sunitinib",
+    "Bevacizumab",
+    "Everolimus",
+    "Temsirolimus",
+    "Ruxolitinib",
+    "Sorafenib"
+  ],
+  "TERT": [
+    "Imetelstat",
+    "Iodine I-131",
+    "Eribulin"
+  ],
+  "TSC1": [
+    "Everolimus",
+    "Sirolimus"
+  ],
+  "TEK": [
+    "Regorafenib"
+  ],
+  "VEGFA": [
+    "Pegaptanib",
+    "Aflibercept",
+    "Ranibizumab",
+    "Bevacizumab",
+    "Sorafenib",
+    "Thalidomide"
+  ],
+  "TP53": [
+    "Venetoclax",
+    "Temozolomide",
+    "Pramlintide",
+    "Pembrolizumab",
+    "Cisplatin",
+    "Doxorubicin",
+    "Selumetinib",
+    "Decitabine",
+    "Mitomycin",
+    "Carboplatin",
+    "Oxaliplatin",
+    "Azacitidine",
+    "Vorinostat",
+    "Pazopanib",
+    "Gemcitabine"
+  ],
+  "TOP1": [
+    "Camptothecin",
+    "Topotecan",
+    "Irinotecan",
+    "Cetuximab"
+  ],
+  "SMARCB1": [
+    "Tazemetostat",
+    "Panobinostat"
+  ],
+  "TSC2": [
+    "Everolimus"
+  ],
+  "STAT5B": [
+    "Dasatinib"
+  ],
+  "TSHR": [
+    "Thyrotropin Alfa"
+  ],
+  "SMO": [
+    "Vismodegib",
+    "Sonidegib",
+    "Glasdegib",
+    "Arsenic Trioxide",
+    "Gefitinib"
+  ],
+  "SRC": [
+    "Tirbanibulin",
+    "Bosutinib",
+    "Dasatinib",
+    "Masitinib",
+    "Ponatinib"
+  ],
+  "SYK": [
+    "Fostamatinib",
+    "Paclitaxel"
+  ],
+  "STAG2": [
+    "Vemurafenib"
+  ],
+  "WT1": [
+    "Cytarabine",
+    "Daunorubicin Liposomal"
+  ],
+  "YES1": [
+    "Dasatinib"
+  ],
+  "XIAP": [
+    "Emapalumab"
+  ]
+}

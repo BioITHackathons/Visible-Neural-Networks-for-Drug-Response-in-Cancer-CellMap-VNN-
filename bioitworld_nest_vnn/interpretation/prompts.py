@@ -1,5 +1,8 @@
 """System prompt and per-batch user message templates for NeST-VNN interpretation."""
 
+from . import cfde_drugs as _cfde
+_DRUG_LOOKUP = _cfde.load()
+
 SYSTEM_PROMPT = """You are a computational oncology assistant specialising in interpreting NeST-VNN (Nested Systems-level Visible Neural Network) results for cancer patients.
 
 ## Background
@@ -47,7 +50,7 @@ For each patient, provide a structured clinical interpretation. You MUST follow 
 - Use ONLY the gene and pathway information provided. Do not invent patient data.
 - For Reactome links: only include a link if you are confident the pathway ID is correct.
 - For Targeted Therapies: focus on FDA-approved targeted agents or active clinical trials; use "None known" if not applicable.
-- Drug information should reference the CFDE Druggable Genome catalogue where possible (e.g., CDK4/6 inhibitors for CCND1, PARP inhibitors for BRCA1/2).
+- Drug information is pre-populated from the CFDE Druggable Genome catalogue (DGIdb, approved drugs only). Use ONLY the listed drugs for each gene. If no drugs are listed, write "None known".
 - Keep each section concise. This output will be stored in a database and displayed to oncologists.
 - Process ALL patients in the batch before finishing. Use "---" as the separator between patients.
 """
@@ -81,9 +84,12 @@ def build_user_message(patients: list[dict]) -> str:
             lines.append("  Top patient-specific genes:")
             for gene in nest.get("top_patient_genes", []):
                 alts = ", ".join(gene.get("alteration_types", ["not_altered"]))
+                cfde = _DRUG_LOOKUP.get(gene["gene_name"].upper(), [])
+                drug_str = (", ".join(cfde[:5])) if cfde else "None known"
                 lines.append(
                     f"    {gene['gene_name']} | alteration: {alts} | "
-                    f"direction: {gene['direction']} | importance: {gene['importance_score']:.4f}"
+                    f"direction: {gene['direction']} | importance: {gene['importance_score']:.4f} | "
+                    f"CFDE approved drugs: {drug_str}"
                 )
             lines.append("")
 

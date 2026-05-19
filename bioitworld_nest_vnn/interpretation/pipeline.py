@@ -6,8 +6,11 @@ from pathlib import Path
 
 from . import db as _db
 from . import llm_client as _llm
+from . import cfde_drugs as _cfde
 from .extractor import extract_patients
 from .prompts import SYSTEM_PROMPT, build_user_message
+
+_DRUG_LOOKUP = _cfde.load()
 
 
 # ── LLM response parser ───────────────────────────────────────────────────────
@@ -99,12 +102,17 @@ def _parse_llm_response(raw: str, patient_batch: list[dict]) -> list[dict]:
             orig = orig_nests.get(nest_id, {})
 
             genes_parsed = _parse_gene_table(nest_block)
-            # Merge importance from original extraction
+            # Merge importance from original extraction + replace drugs with CFDE data
             orig_genes = {g["gene_name"]: g for g in orig.get("top_patient_genes", [])}
             for g in genes_parsed:
                 og = orig_genes.get(g["gene_name"], {})
                 g["rank"] = og.get("rank", 0)
                 g["importance_score"] = og.get("importance_score")
+                # Replace LLM-suggested drugs with CFDE-verified approved drugs.
+                # If the gene has no CFDE entry, keep whatever the LLM produced.
+                cfde = _DRUG_LOOKUP.get(g["gene_name"].upper())
+                if cfde is not None:
+                    g["drugs"] = cfde
 
             result["nests"].append({
                 "nest_id": nest_id,
