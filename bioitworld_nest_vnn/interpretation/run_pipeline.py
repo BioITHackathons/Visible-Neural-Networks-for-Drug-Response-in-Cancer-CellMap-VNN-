@@ -23,6 +23,7 @@ def main():
     parser.add_argument("label", help="Endpoint label (e.g. binary_os_months)")
     parser.add_argument("--batch-size", type=int, default=5, help="Patients per LLM call (default 5)")
     parser.add_argument("--limit", type=int, default=None, help="Process only first N patients")
+    parser.add_argument("--offset", type=int, default=0, help="Skip first N patients before processing")
     parser.add_argument("--no-skip", action="store_true", help="Re-process already stored patients")
     parser.add_argument("--db", type=Path, default=DB_PATH, help="SQLite database path")
     args = parser.parse_args()
@@ -32,6 +33,7 @@ def main():
         label=args.label,
         batch_size=args.batch_size,
         limit=args.limit,
+        offset=args.offset,
         skip_existing=not args.no_skip,
         db_path=args.db,
     )

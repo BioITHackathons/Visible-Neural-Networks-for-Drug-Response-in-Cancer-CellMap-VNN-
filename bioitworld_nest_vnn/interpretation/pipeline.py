@@ -194,6 +194,7 @@ def run_pipeline(
     label: str,
     batch_size: int = 5,
     limit: int = None,
+    offset: int = 0,
     skip_existing: bool = True,
     db_path: Path = None,
 ):
@@ -205,7 +206,11 @@ def run_pipeline(
 
     print(f"[pipeline] Extracting patients for study={study_id!r} label={label!r} ...")
     all_patients = extract_patients(study_id, label, limit=limit)
-    print(f"[pipeline] {len(all_patients)} patients extracted.")
+    if offset:
+        all_patients = all_patients[offset:]
+        print(f"[pipeline] {len(all_patients)} patients after skipping first {offset}.")
+    else:
+        print(f"[pipeline] {len(all_patients)} patients extracted.")
 
     if skip_existing:
         all_patients = [
@@ -233,12 +238,24 @@ def run_pipeline(
         with _db.get_conn(db_path) as conn:
             for rec in parsed:
                 rec["llm_raw_markdown"] = rec.get("llm_raw_markdown", "")
+                pid = rec["patient_id"]
+
+                # Remove stale nest/gene rows so old selections don't persist alongside new ones
+                conn.execute(
+                    "DELETE FROM patient_nests WHERE patient_id=? AND study_id=? AND label=?",
+                    (pid, study_id, label),
+                )
+                conn.execute(
+                    "DELETE FROM patient_genes WHERE patient_id=? AND study_id=? AND label=?",
+                    (pid, study_id, label),
+                )
+
                 _db.upsert_patient(conn, rec)
 
                 for nest in rec.get("nests", []):
-                    _db.upsert_nest(conn, rec["patient_id"], study_id, label, nest)
+                    _db.upsert_nest(conn, pid, study_id, label, nest)
                     for gene in nest.get("genes", []):
-                        _db.upsert_gene(conn, rec["patient_id"], study_id, label, nest["nest_id"], gene)
+                        _db.upsert_gene(conn, pid, study_id, label, nest["nest_id"], gene)
 
             # Store any patients in the batch that weren't returned by the parser
             parsed_ids = {r["patient_id"] for r in parsed}
