@@ -10,6 +10,14 @@ Each patient/sample is characterized by binary feature vectors for somatic mutat
 
 ---
 
+## Demo
+
+Watch a full walkthrough of the pipeline — from data download through training, annotation, and the interactive visualization dashboard — on YouTube:
+
+[![NeST-VNN Demo](https://img.youtube.com/vi/bjEPVhkSdC0/0.jpg)](https://youtu.be/bjEPVhkSdC0)
+
+---
+
 ## Environment setup
 
 A CUDA-capable GPU is recommended. CPU-only training and inference is also supported (pass `-cuda cpu` or select `cpu` when prompted).
