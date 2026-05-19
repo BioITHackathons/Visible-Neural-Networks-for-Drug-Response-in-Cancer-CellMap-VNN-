@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-Content *)",
+      "Bash(powershell *)",
+      "Bash(Select-Object -First 5)",
+      "Bash(Select-Object -First 3)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\prath\\\\OneDrive\\\\Desktop\\\\cellmapvnn\\\\nestvnn_interpret\\\\ai_backends\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\prath\\\\OneDrive\\\\Desktop\\\\cellmapvnn\\\\nestvnn_interpret\\\\prompts\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\prath\\\\OneDrive\\\\Desktop\\\\cellmapvnn\\\\nestvnn_interpret\\\\data\")",
+      "Bash(python ingest.py --config config.yaml)",
+      "Bash(sqlite3 data/pipeline.db \"SELECT COUNT\\(*\\) FROM patients;\")",
+      "Bash(sqlite3 data/pipeline.db \"SELECT gene, ROUND\\(importance,4\\), ROUND\\(signed_z,4\\) FROM patient_gene_importance WHERE sample_id='P-0000004-T01-IM3' ORDER BY importance DESC LIMIT 5;\")",
+      "Bash(sqlite3 data/pipeline.db \"SELECT sample_id, ROUND\\(predicted_prob,4\\), binary_label, os_months, os_status FROM patients WHERE sample_id IN \\('P-0000004-T01-IM3','P-0000012-T02-IM3','P-0000015-T01-IM3'\\) ORDER BY sample_id;\")",
+      "Bash(python interpret.py --config config.yaml --limit 5 --dry-run)",
+      "Bash(sqlite3 data/pipeline.db \"SELECT name, COUNT\\(*\\) as rows FROM \\(SELECT 'patients' as name FROM patients UNION ALL SELECT 'gene_importance' FROM patient_gene_importance UNION ALL SELECT 'term_importance' FROM patient_term_importance UNION ALL SELECT 'patient_rlipp' FROM patient_rlipp UNION ALL SELECT 'cohort_rlipp' FROM cohort_rlipp UNION ALL SELECT 'cohort_gene_scores' FROM cohort_gene_scores UNION ALL SELECT 'boolean_logic' FROM cohort_boolean_logic UNION ALL SELECT 'subsystem_gene_weights' FROM subsystem_gene_weights UNION ALL SELECT 'ontology' FROM ontology\\) GROUP BY name ORDER BY name;\")",
+      "Bash(Remove-Item data/pipeline.db -ErrorAction SilentlyContinue)",
+      "Bash(sqlite3 data/pipeline.db \"SELECT 'boolean_logic', COUNT\\(*\\) FROM cohort_boolean_logic UNION ALL SELECT 'patients', COUNT\\(*\\) FROM patients;\")"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem *)",
+      "Bash(Get-Content *)",
+      "Bash(cat)",
+      "Bash(python /tmp/analyze_data.py)",
+      "Bash(python /tmp/tensor_analysis.py)",
+      "Bash(Select-Object Name)",
+      "Bash(python3 *)",
+      "Bash(sqlite3 *)",
+      "Bash(python -c ' *)",
+      "Bash(python interpretation/run_pipeline.py --help)",
+      "Bash(dir \"C:\\\\Users\\\\prath\\\\OneDrive\\\\Desktop\\\\cellmapvnn\\\\bioitworld_nest_vnn\" -Recurse -Directory)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\prath\\\\OneDrive\\\\Desktop\\\\cellmapvnn\\\\bioitworld_nest_vnn\" -Recurse -Directory | Where-Object {$_.Name -match \"vis|visual|plot|chart|graph|render|draw\"} | Select-Object FullName)",
+      "Bash(python -c \"import flask, flask_cors, requests; print\\('flask', flask.__version__\\); print\\('flask_cors OK'\\); print\\('requests', requests.__version__\\)\")"
+    ]
+  }
+}

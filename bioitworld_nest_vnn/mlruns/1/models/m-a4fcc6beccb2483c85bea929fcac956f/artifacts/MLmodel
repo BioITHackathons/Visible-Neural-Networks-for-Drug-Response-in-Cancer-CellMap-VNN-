@@ -1,0 +1,31 @@
+artifact_path: file:C:/Users/prath/OneDrive/Desktop/cellmapvnn/bioitworld_nest_vnn/mlruns/1/models/m-a4fcc6beccb2483c85bea929fcac956f/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.12.13
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.10.0+cu130
+is_signature_from_type_hint: false
+mlflow_version: 3.12.0
+model_id: m-a4fcc6beccb2483c85bea929fcac956f
+model_size_bytes: 2851237
+model_uuid: m-a4fcc6beccb2483c85bea929fcac956f
+prompts: null
+run_id: 7e4613e830f1458ba2ea8bc986e1b45d
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 407,
+    4]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1,
+    1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-05-18 22:48:37.819804'

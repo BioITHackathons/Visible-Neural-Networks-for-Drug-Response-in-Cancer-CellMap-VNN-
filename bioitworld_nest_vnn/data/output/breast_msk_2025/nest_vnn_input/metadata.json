@@ -1,0 +1,9 @@
+{
+  "study_id": "breast_msk_2025",
+  "cbioportal_url": "https://www.cbioportal.org/study/summary?id=breast_msk_2025",
+  "ndex_uuid": "9a8f5326-aa6e-11ea-aaef-0ac135e8bacf",
+  "ndex_url": "https://www.ndexbio.org/viewer/networks/9a8f5326-aa6e-11ea-aaef-0ac135e8bacf",
+  "min_alt_freq": 0.005,
+  "gene_list_file": null,
+  "gene_count": 407
+}

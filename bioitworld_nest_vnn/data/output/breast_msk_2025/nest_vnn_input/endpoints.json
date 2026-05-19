@@ -1,0 +1,10 @@
+[
+  {
+    "label_name": "binary_os_months",
+    "clinical_col": "OS_MONTHS",
+    "mode": "binary_threshold",
+    "mapping": {
+      "threshold": 46.0
+    }
+  }
+]

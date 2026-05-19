@@ -1,0 +1,27 @@
+[
+  {
+    "clinical_col": "FRACTION_GENOME_ALTERED",
+    "label_name": "cov_fraction_genome_altered",
+    "mode": "numeric",
+    "median": 0.2538,
+    "mean": 0.2816966154647227,
+    "std": 0.18941534697809892
+  },
+  {
+    "clinical_col": "MUTATION_COUNT",
+    "label_name": "cov_mutation_count",
+    "mode": "numeric",
+    "median": 5.0,
+    "mean": 6.0961945031712474,
+    "std": 6.619626239193214
+  },
+  {
+    "clinical_col": "SAMPLE_TYPE",
+    "label_name": "cov_sample_type",
+    "mode": "binary",
+    "mapping": {
+      "Metastasis": 1.0
+    },
+    "default_value": 0.0
+  }
+]
