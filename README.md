@@ -18,6 +18,14 @@ Watch a full walkthrough of the pipeline — from data download through training
 
 ---
 
+## Presentation
+
+View the project presentation on Genially:
+
+[NeST-VNN Presentation](https://view.genially.com/6a0ba1856731f1a27bb6d625)
+
+---
+
 ## Environment setup
 
 A CUDA-capable GPU is recommended. CPU-only training and inference is also supported (pass `-cuda cpu` or select `cpu` when prompted).
