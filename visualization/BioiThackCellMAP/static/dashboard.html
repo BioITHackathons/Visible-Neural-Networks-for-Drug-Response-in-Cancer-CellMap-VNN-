@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --surf: #f6f8fa; --surf2: #eaeef2; --border: #d0d7de;
+  --accent: #0969da; --text: #1f2328; --muted: #656d76;
+  --red: #e74c3c; --green: #27ae60;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px 32px; overflow-y: auto; }
+h2 { font-size: 22px; margin-bottom: 16px; }
+h3 { font-size: 16px; margin: 24px 0 12px; }
+
+.filter-bar { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; }
+.filter-bar label { font-size: 13px; color: var(--muted); }
+.filter-bar select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+
+.metric-row { display: flex; gap: 16px; margin-bottom: 24px; }
+.metric { background: var(--surf); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; min-width: 140px; }
+.metric .label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.metric .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+
+.chart-container { max-width: 700px; margin-bottom: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 32px; }
+th { text-align: left; padding: 8px 12px; background: var(--surf); border-bottom: 2px solid var(--border); font-weight: 600; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--surf2); }
+tr:hover td { background: var(--surf); }
+
+.empty { color: var(--muted); font-style: italic; padding: 32px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<h2>Population Overview</h2>
+
+<div class="filter-bar">
+  <div><label>Study</label><br><select id="f-study"><option value="">(all)</option></select></div>
+  <div><label>Label</label><br><select id="f-label"><option value="">(all)</option></select></div>
+  <div><label>Predicted Class</label><br><select id="f-class">
+    <option value="">(all)</option><option value="high_risk">high_risk</option><option value="low_risk">low_risk</option>
+  </select></div>
+</div>
+
+<div class="metric-row">
+  <div class="metric"><div class="label">Patients with LLM interpretations</div><div class="value" id="m-total">—</div></div>
+  <div class="metric"><div class="label">High risk</div><div class="value" id="m-high" style="color:var(--red)">—</div></div>
+  <div class="metric"><div class="label">Low risk</div><div class="value" id="m-low" style="color:var(--green)">—</div></div>
+</div>
+
+<h3>Outcome Distribution</h3>
+<div class="chart-container"><canvas id="chart-outcome" height="80"></canvas></div>
+
+<h3>NEST Frequency (top-3 driver systems across patients)</h3>
+<div class="chart-container"><canvas id="chart-nests" height="200"></canvas></div>
+<table id="tbl-nests"><thead><tr><th>NEST ID</th><th>Count</th><th>Avg Population RLIPP</th></tr></thead><tbody></tbody></table>
+
+<h3>Top Recurrently Important Genes</h3>
+<div class="chart-container"><canvas id="chart-genes" height="200"></canvas></div>
+<table id="tbl-genes"><thead><tr><th>Gene</th><th>Alteration</th><th>Count</th></tr></thead><tbody></tbody></table>
+
+<script>
+const fStudy = document.getElementById('f-study');
+const fLabel = document.getElementById('f-label');
+const fClass = document.getElementById('f-class');
+
+let chartOutcome, chartNests, chartGenes;
+
+async function loadFilters() {
+  const res = await fetch('/api/interp/filters');
+  const data = await res.json();
+  data.studies.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; fStudy.appendChild(o); });
+  data.labels.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; fLabel.appendChild(o); });
+}
+
+function qs() {
+  const p = new URLSearchParams();
+  if (fStudy.value) p.set('study_id', fStudy.value);
+  if (fLabel.value) p.set('label', fLabel.value);
+  if (fClass.value) p.set('pred_class', fClass.value);
+  return p.toString();
+}
+
+function destroyChart(c) { if (c) c.destroy(); return null; }
+
+async function refresh() {
+  const q = qs();
+
+  // Patients summary
+  const patients = await (await fetch('/api/interp/patients?' + q)).json();
+  document.getElementById('m-total').textContent = patients.length;
+  const high = patients.filter(p => p.predicted_class === 'high_risk').length;
+  const low = patients.filter(p => p.predicted_class === 'low_risk').length;
+  document.getElementById('m-high').textContent = high;
+  document.getElementById('m-low').textContent = low;
+
+  // Outcome distribution
+  chartOutcome = destroyChart(chartOutcome);
+  chartOutcome = new Chart(document.getElementById('chart-outcome'), {
+    type: 'bar',
+    data: { labels: ['high_risk', 'low_risk'], datasets: [{ data: [high, low], backgroundColor: ['#e74c3c', '#27ae60'] }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+
+  // NEST frequency (exclude pred_class filter for population queries)
+  const nestQ = new URLSearchParams();
+  if (fStudy.value) nestQ.set('study_id', fStudy.value);
+  if (fLabel.value) nestQ.set('label', fLabel.value);
+
+  const nests = await (await fetch('/api/interp/population/nests?' + nestQ)).json();
+  const nestTbody = document.querySelector('#tbl-nests tbody');
+  nestTbody.innerHTML = '';
+  nests.forEach(n => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${n.nest_id}</td><td>${n.cnt}</td><td>${n.avg_rlipp != null ? n.avg_rlipp.toFixed(4) : '—'}</td>`;
+    nestTbody.appendChild(tr);
+  });
+  chartNests = destroyChart(chartNests);
+  if (nests.length) {
+    chartNests = new Chart(document.getElementById('chart-nests'), {
+      type: 'bar',
+      data: { labels: nests.map(n => n.nest_id), datasets: [{ label: 'Count', data: nests.map(n => n.cnt), backgroundColor: '#0969da' }] },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  }
+
+  // Top genes
+  const genes = await (await fetch('/api/interp/population/genes?' + nestQ)).json();
+  const geneTbody = document.querySelector('#tbl-genes tbody');
+  geneTbody.innerHTML = '';
+  genes.forEach(g => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${g.gene_name}</td><td>${g.alteration_type || '—'}</td><td>${g.cnt}</td>`;
+    geneTbody.appendChild(tr);
+  });
+  chartGenes = destroyChart(chartGenes);
+  if (genes.length) {
+    chartGenes = new Chart(document.getElementById('chart-genes'), {
+      type: 'bar',
+      data: { labels: genes.map(g => g.gene_name), datasets: [{ label: 'Count', data: genes.map(g => g.cnt), backgroundColor: '#8250df' }] },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  }
+}
+
+[fStudy, fLabel, fClass].forEach(el => el.addEventListener('change', refresh));
+loadFilters().then(refresh);
+</script>
+</body>
+</html>

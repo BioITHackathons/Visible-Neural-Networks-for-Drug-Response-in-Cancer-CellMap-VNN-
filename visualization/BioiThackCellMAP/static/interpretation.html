@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Interpretation</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --surf: #f6f8fa; --surf2: #eaeef2; --border: #d0d7de;
+  --accent: #0969da; --text: #1f2328; --muted: #656d76;
+  --red: #e74c3c; --green: #27ae60;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px 32px; overflow-y: auto; }
+h2 { font-size: 22px; margin-bottom: 16px; }
+h3 { font-size: 16px; margin: 20px 0 10px; }
+
+.filter-bar { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; }
+.filter-bar label { font-size: 13px; color: var(--muted); }
+.filter-bar select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+
+.metric-row { display: flex; gap: 16px; margin-bottom: 24px; }
+.metric { background: var(--surf); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; min-width: 120px; }
+.metric .label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.metric .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+th { text-align: left; padding: 8px 12px; background: var(--surf); border-bottom: 2px solid var(--border); font-weight: 600; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--surf2); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--surf); }
+tr.selected td { background: #ddf4ff; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: white; }
+.badge.high { background: var(--red); }
+.badge.low { background: var(--green); }
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+/* Patient detail */
+#detail { display: none; }
+.detail-header { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+.detail-header .prob { font-size: 16px; font-weight: 400; color: var(--muted); }
+
+/* Accordion */
+.accordion { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+.accordion-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; background: var(--surf); cursor: pointer; font-size: 14px; font-weight: 600;
+  user-select: none;
+}
+.accordion-head .dir { font-size: 12px; font-weight: 500; }
+.accordion-head .dir.worsened { color: var(--red); }
+.accordion-head .dir.improved { color: var(--green); }
+.accordion-body { display: none; padding: 16px; font-size: 13px; line-height: 1.6; }
+.accordion.open .accordion-body { display: block; }
+.accordion-body .metric-row { margin-bottom: 16px; }
+.accordion-body .metric { padding: 10px 16px; min-width: 100px; }
+.accordion-body .metric .value { font-size: 20px; }
+.accordion-body p { margin-bottom: 8px; }
+.accordion-body a { color: var(--accent); }
+
+.gene-table { margin-top: 12px; }
+.gene-table th { font-size: 12px; }
+
+.llm-raw { background: var(--surf); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.7; max-height: 600px; overflow-y: auto; }
+.llm-raw h1, .llm-raw h2, .llm-raw h3, .llm-raw h4 { margin: 12px 0 6px; }
+.llm-raw table { margin: 8px 0; }
+.llm-raw th, .llm-raw td { padding: 4px 8px; }
+
+.empty { color: var(--muted); font-style: italic; padding: 32px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<h2>Patient Explorer</h2>
+
+<div class="filter-bar">
+  <div><label>Study</label><br><select id="f-study"><option value="">(all)</option></select></div>
+  <div><label>Label</label><br><select id="f-label"><option value="">(all)</option></select></div>
+  <div><label>Predicted Class</label><br><select id="f-class">
+    <option value="">(all)</option><option value="high_risk">high_risk</option><option value="low_risk">low_risk</option>
+  </select></div>
+</div>
+
+<div class="metric-row">
+  <div class="metric"><div class="label">Total patients</div><div class="value" id="m-total">—</div></div>
+  <div class="metric"><div class="label">High risk</div><div class="value" id="m-high" style="color:var(--red)">—</div></div>
+  <div class="metric"><div class="label">Low risk</div><div class="value" id="m-low" style="color:var(--green)">—</div></div>
+  <div class="metric"><div class="label">Avg FGA</div><div class="value" id="m-fga">—</div></div>
+</div>
+
+<table id="patient-list">
+  <thead><tr><th>Patient ID</th><th>Class</th><th>Probability</th><th>Sample Type</th><th>Mutations</th><th>FGA</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<hr class="divider">
+
+<div id="detail">
+  <h3>Patient Detail</h3>
+  <div id="detail-header" class="detail-header"></div>
+  <div class="metric-row" id="detail-metrics"></div>
+  <div id="nest-section"></div>
+  <div id="llm-section"></div>
+</div>
+
+<script>
+const fStudy = document.getElementById('f-study');
+const fLabel = document.getElementById('f-label');
+const fClass = document.getElementById('f-class');
+
+let patients = [];
+let selectedPid = null;
+
+async function loadFilters() {
+  const res = await fetch('/api/interp/filters');
+  const data = await res.json();
+  data.studies.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; fStudy.appendChild(o); });
+  data.labels.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; fLabel.appendChild(o); });
+}
+
+function qs() {
+  const p = new URLSearchParams();
+  if (fStudy.value) p.set('study_id', fStudy.value);
+  if (fLabel.value) p.set('label', fLabel.value);
+  if (fClass.value) p.set('pred_class', fClass.value);
+  return p.toString();
+}
+
+function fmt(v, d=4) { return v != null ? Number(v).toFixed(d) : '—'; }
+
+async function refreshList() {
+  patients = await (await fetch('/api/interp/patients?' + qs())).json();
+
+  document.getElementById('m-total').textContent = patients.length;
+  const high = patients.filter(p => p.predicted_class === 'high_risk').length;
+  const low = patients.filter(p => p.predicted_class === 'low_risk').length;
+  document.getElementById('m-high').textContent = high;
+  document.getElementById('m-low').textContent = low;
+  const avgFga = patients.length ? (patients.reduce((s, p) => s + (p.fraction_genome_altered || 0), 0) / patients.length) : 0;
+  document.getElementById('m-fga').textContent = avgFga.toFixed(3);
+
+  const tbody = document.querySelector('#patient-list tbody');
+  tbody.innerHTML = '';
+  patients.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable' + (p.patient_id === selectedPid ? ' selected' : '');
+    tr.dataset.pid = p.patient_id;
+    tr.dataset.study = p.study_id;
+    tr.dataset.label = p.label;
+    const cls = p.predicted_class === 'high_risk' ? 'high' : 'low';
+    tr.innerHTML = `
+      <td>${p.patient_id}</td>
+      <td><span class="badge ${cls}">${(p.predicted_class || '').replace('_', ' ').toUpperCase()}</span></td>
+      <td>${fmt(p.predicted_score)}</td>
+      <td>${p.sample_type || '—'}</td>
+      <td>${p.mutation_count != null ? p.mutation_count : '—'}</td>
+      <td>${fmt(p.fraction_genome_altered, 3)}</td>`;
+    tr.addEventListener('click', () => selectPatient(p.patient_id, p.study_id, p.label));
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('detail').style.display = 'none';
+  selectedPid = null;
+}
+
+async function selectPatient(pid, studyId, label) {
+  selectedPid = pid;
+  document.querySelectorAll('#patient-list tbody tr').forEach(tr => {
+    tr.classList.toggle('selected', tr.dataset.pid === pid);
+  });
+
+  const q = `study_id=${encodeURIComponent(studyId)}&label=${encodeURIComponent(label)}`;
+  const [patient, nests] = await Promise.all([
+    (await fetch(`/api/interp/patient/${encodeURIComponent(pid)}?${q}`)).json(),
+    (await fetch(`/api/interp/patient/${encodeURIComponent(pid)}/nests?${q}`)).json(),
+  ]);
+
+  if (patient.error) { document.getElementById('detail').style.display = 'none'; return; }
+
+  document.getElementById('detail').style.display = 'block';
+
+  // Header
+  const prob = patient.predicted_score || 0;
+  const cls = patient.predicted_class === 'high_risk' ? 'high' : 'low';
+  document.getElementById('detail-header').innerHTML =
+    `${patient.patient_id}&nbsp;&nbsp;<span class="badge ${cls}">${(patient.predicted_class || '').replace('_', ' ').toUpperCase()}</span>` +
+    `&nbsp;&nbsp;<span class="prob">probability: <b>${fmt(prob)}</b></span>`;
+
+  // Metrics
+  document.getElementById('detail-metrics').innerHTML = `
+    <div class="metric"><div class="label">Sample Type</div><div class="value" style="font-size:18px">${patient.sample_type || '—'}</div></div>
+    <div class="metric"><div class="label">Mutation Count</div><div class="value" style="font-size:18px">${patient.mutation_count != null ? patient.mutation_count.toFixed(1) : '—'}</div></div>
+    <div class="metric"><div class="label">FGA</div><div class="value" style="font-size:18px">${fmt(patient.fraction_genome_altered, 3)}</div></div>`;
+
+  // NESTs
+  const nestSection = document.getElementById('nest-section');
+  nestSection.innerHTML = '<h3>Top Biological Systems (NeSTs)</h3>';
+
+  if (!nests.length) {
+    nestSection.innerHTML += '<p class="empty">No NEST interpretations stored for this patient yet.</p>';
+  } else {
+    for (const nest of nests) {
+      const genes = await (await fetch(`/api/interp/patient/${encodeURIComponent(pid)}/genes?${q}&nest_id=${encodeURIComponent(nest.nest_id)}`)).json();
+      const dirCls = nest.outcome_direction === 'worsened' ? 'worsened' : 'improved';
+      const open = nest.rank === 1 ? ' open' : '';
+      const acc = document.createElement('div');
+      acc.className = 'accordion' + open;
+      acc.innerHTML = `
+        <div class="accordion-head">
+          <span><b>${nest.nest_id}</b> — ${nest.pathway_name || '(pathway TBD)'} | importance: ${fmt(nest.importance_score)}</span>
+          <span class="dir ${dirCls}">${nest.outcome_direction || ''}</span>
+        </div>
+        <div class="accordion-body">
+          <div class="metric-row">
+            <div class="metric"><div class="label">Importance Score</div><div class="value">${fmt(nest.importance_score)}</div></div>
+            <div class="metric"><div class="label">Patient RLIPP</div><div class="value">${fmt(nest.rlipp_score)}</div></div>
+            <div class="metric"><div class="label">Population RLIPP</div><div class="value">${fmt(nest.population_rlipp)}</div></div>
+          </div>
+          ${nest.reactome_link && nest.reactome_link !== 'N/A' ? `<p><a href="${nest.reactome_link}" target="_blank">Reactome Pathway</a></p>` : ''}
+          ${nest.biological_explanation ? `<p><b>Biology:</b> ${nest.biological_explanation}</p>` : ''}
+          ${nest.clinical_reasoning ? `<p><b>Clinical:</b> ${nest.clinical_reasoning}</p>` : ''}
+          ${genes.length ? buildGeneTable(genes) : ''}
+        </div>`;
+      acc.querySelector('.accordion-head').addEventListener('click', () => acc.classList.toggle('open'));
+      nestSection.appendChild(acc);
+    }
+  }
+
+  // LLM raw markdown
+  const llmSection = document.getElementById('llm-section');
+  if (patient.llm_raw_markdown) {
+    llmSection.innerHTML = `
+      <div class="accordion" style="margin-top:16px">
+        <div class="accordion-head"><span>Full LLM Reasoning (raw markdown)</span></div>
+        <div class="accordion-body"><div class="llm-raw">${marked.parse(patient.llm_raw_markdown)}</div></div>
+      </div>`;
+    llmSection.querySelector('.accordion-head').addEventListener('click', function() {
+      this.parentElement.classList.toggle('open');
+    });
+  } else {
+    llmSection.innerHTML = '';
+  }
+
+  document.getElementById('detail').scrollIntoView({ behavior: 'smooth' });
+}
+
+function buildGeneTable(genes) {
+  let html = '<table class="gene-table"><thead><tr><th>Gene</th><th>Alteration</th><th>Direction</th><th>Biological Role</th><th>Targeted Therapies</th></tr></thead><tbody>';
+  for (const g of genes) {
+    let drugs = '—';
+    try {
+      const d = JSON.parse(g.drugs || '[]');
+      if (d.length) drugs = d.join(', ');
+    } catch { if (g.drugs) drugs = g.drugs; }
+    html += `<tr><td>${g.gene_name}</td><td>${g.alteration_type || '—'}</td><td>${g.outcome_direction || '—'}</td><td>${g.biological_role || '—'}</td><td>${drugs}</td></tr>`;
+  }
+  return html + '</tbody></table>';
+}
+
+[fStudy, fLabel, fClass].forEach(el => el.addEventListener('change', refreshList));
+loadFilters().then(refreshList);
+</script>
+</body>
+</html>
