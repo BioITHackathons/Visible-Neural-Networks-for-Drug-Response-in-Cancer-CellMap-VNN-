@@ -48,7 +48,7 @@ streamlit run interpretation/app.py
 Commands run from `visualization/BioiThackCellMAP/`:
 
 ```bash
-# NeST-STRING Explorer (interactive hierarchy + STRING PPI viewer)
+# Unified visualization (3-tab Flask app: Dashboard, LLM Interpretation, NeST-STRING Explorer)
 pip install flask flask-cors requests
 python server.py
 # Open http://localhost:5001
@@ -64,8 +64,8 @@ cBioPortal API → cbioport_download.py → cbioportal_output/
     → train.py → model_final.pt
       → predict.py → predictions + hidden embeddings (per-term, per-gene)
         → annotate_hierarchy.py → RLIPP scores, gene scores, boolean logic, HTML viz
-          → interpretation/extractor.py → LLM pipeline → SQLite → Streamlit app
-          → patient_viz.html → visualization/BioiThackCellMAP (NeST-STRING Explorer)
+          → interpretation/extractor.py → LLM pipeline → SQLite
+          → patient_viz.html → visualization/BioiThackCellMAP (unified 3-tab Flask app)
 ```
 
 ### Core modules (`src/`)
@@ -84,18 +84,28 @@ Extracts per-patient results from MLflow artifacts, batches them, sends to an LL
 
 - **extractor.py** — Harvests patient records from MLflow annotation artifacts
 - **pipeline.py** — Orchestrates extract → batch → LLM → parse → store
-- **llm_client.py** — Bedrock primary (Claude 3.5 Sonnet), OpenAI fallback; needs AWS_* or OPENAI_API_KEY env vars
+- **llm_client.py** — Bedrock primary (Claude 3.5 Sonnet), OpenAI fallback; needs `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` + `AWS_DEFAULT_REGION` or `OPENAI_API_KEY` env vars
 - **prompts.py** — System prompt and batch message builder for clinical interpretation
 - **db.py** — SQLite schema: `patients`, `patient_nests`, `patient_genes` tables
 
-### NeST-STRING Explorer (`visualization/BioiThackCellMAP/`)
+### Unified visualization (`visualization/BioiThackCellMAP/`)
 
-Interactive web tool for exploring the NeST hierarchy and STRING protein-protein interaction networks with per-patient genomic context. A Flask server proxies NDEx, STRING, and MyGene.info APIs to avoid CORS issues; the frontend is a single-page Cytoscape.js app.
+A single Flask app (port 5001) with an iframe-based 3-tab UI. Each tab is a self-contained HTML page loaded in an iframe — this isolates Cytoscape.js, Chart.js, and marked.js globals.
 
-- **server.py** — Flask proxy (port 5001). Endpoints: `/api/nest/<uuid>` (NDEx), `/api/string/network` (STRING PPI), `/api/mygene/<symbol>` (gene descriptions), `/api/patients/*` (patient data)
+**Tabs** (managed by `static/index.html` shell):
+1. **Dashboard** (`static/dashboard.html`) — Population-level overview: patient counts, outcome distribution, NEST frequency chart, top recurrently important genes. Uses Chart.js v4.
+2. **LLM Interpretation** (`static/interpretation.html`) — Per-patient clinical interpretation: clickable patient table, NeST accordion cards with importance/RLIPP scores and biology/clinical text, gene tables with alteration/drug info, full LLM reasoning rendered via marked.js.
+3. **NeST-STRING Explorer** (`static/explorer.html`) — Cytoscape.js NeST hierarchy map + STRING PPI viewer with per-patient genomic context. Loaded with `?embedded=1` to hide its standalone header.
+
+**Backend:**
+- **server.py** — Flask proxy (port 5001). Two data sources:
+  - In-memory patient data from `patient_viz.html` → `/api/patients/*`, `/api/patient/<id>/*`
+  - SQLite LLM interpretations from `interpretation/db.py` → `/api/interp/*` (filters, patients, nests, genes, population aggregations)
+  - NDEx/STRING/MyGene.info proxies → `/api/nest/*`, `/api/string/*`, `/api/gene/*`
 - **patient_loader.py** — Parses `patient_viz.html` at startup to build in-memory patient data (term importance, gene scores, predictions). Auto-discovers the file under `bioitworld_nest_vnn/data/output/` or `mlruns/`. Also loads binary alteration matrices (mutation/CNV/fusion) from `nest_vnn_input/` for gene badges.
-- **static/index.html** — Single-page frontend: Cytoscape.js NeST hierarchy map on the left, STRING network panel on the right. Patient mode highlights top 3 directionally-significant NESTs (green = higher outcome, red = lower). Click any node to fetch its STRING PPI network.
 - **nest_cli.py** — CLI utilities for NeST data
+
+The `interpretation/db.py` import is guarded with try/except — the Dashboard and LLM Interpretation tabs degrade gracefully (empty data) if the SQLite DB is unavailable.
 
 ### Data layout
 
@@ -108,7 +118,15 @@ All outputs go under `data/output/<study_id>/`:
 
 ### MLflow artifact URIs
 
-The MLflow `mlflow.db` stores absolute `file://` artifact URIs. These were originally recorded on Windows (`file:C:/Users/prath/...`) and must be updated when working on a different machine. The `_uri_to_path` function in `interpretation/extractor.py` handles both Windows and Unix URI formats.
+The MLflow `mlflow.db` stores absolute `file://` artifact URIs. These were originally recorded on Windows (`file:C:/Users/prath/...`) and must be updated when working on a different machine:
+
+```sql
+-- Example: repoint artifact URIs to a new machine
+sqlite3 bioitworld_nest_vnn/mlflow.db
+UPDATE runs SET artifact_uri = REPLACE(artifact_uri, 'file:C:/Users/prath/OneDrive/Desktop/cellmapvnn', 'file:///Users/<you>/cellmapvnn');
+```
+
+The `_uri_to_path` function in `interpretation/extractor.py` handles both Windows and Unix URI formats.
 
 ### Key design decisions
 
