@@ -3,20 +3,22 @@ Flask proxy server for NDEx, STRING, and patient data API endpoints.
 Avoids browser CORS restrictions when building frontend tools.
 """
 
+import sys
+import os
+import json as _json
+from pathlib import Path
+
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import requests
-import os
-import sys
-import json as _json
 import patient_loader
 
-# Import interpretation DB from sibling repo
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'bioitworld_nest_vnn'))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "bioitworld_nest_vnn"))
 try:
-    from interpretation.db import DB_PATH, get_nests, get_genes
+    from interpretation import db as interp_db
     _interp_available = True
 except ImportError:
+    interp_db = None
     _interp_available = False
 
 app = Flask(__name__, static_folder="static")
@@ -29,6 +31,13 @@ patient_loader.load()
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
+
+
+@app.route("/<path:filename>")
+def serve_static_html(filename):
+    if filename.endswith(".html"):
+        return send_from_directory(app.static_folder, filename)
+    return send_from_directory(app.static_folder, filename)
 
 
 NDEX_BASE = "https://www.ndexbio.org/v2"
@@ -238,7 +247,7 @@ def get_patient_genes(patient_id):
     return jsonify({"patientId": patient_id, "genes": result})
 
 
-# ── LLM interpretation endpoints ─────────────────────────────────────────────
+# ── LLM interpretation endpoints (explorer.html) ─────────────────────────
 
 def _default_study_label():
     """Fall back to the study/label loaded by patient_loader."""
@@ -254,7 +263,7 @@ def get_nest_interpretation(patient_id, nest_id):
     study_id = request.args.get('study_id') or _default_study_label()[0]
     label    = request.args.get('label')    or _default_study_label()[1]
     try:
-        nests = get_nests(patient_id, study_id, label, DB_PATH)
+        nests = interp_db.get_nests(patient_id, study_id, label)
         nest  = next((n for n in nests if n['nest_id'] == nest_id), None)
         if nest is None:
             return jsonify({}), 200
@@ -280,7 +289,7 @@ def get_gene_interpretation(patient_id, nest_id):
     study_id = request.args.get('study_id') or _default_study_label()[0]
     label    = request.args.get('label')    or _default_study_label()[1]
     try:
-        genes = get_genes(patient_id, study_id, label, nest_id, DB_PATH)
+        genes = interp_db.get_genes(patient_id, study_id, label, nest_id)
         result = {}
         for g in genes:
             try:
@@ -298,6 +307,109 @@ def get_gene_interpretation(patient_id, nest_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ── LLM Interpretation endpoints (interpretation.html / dashboard.html) ──
+
+@app.route("/api/interp/filters", methods=["GET"])
+def interp_filters():
+    if not _interp_available:
+        return jsonify({"studies": [], "labels": []}), 200
+    with interp_db.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT study_id, label FROM patients ORDER BY study_id, label"
+        ).fetchall()
+    return jsonify({
+        "studies": sorted({r["study_id"] for r in rows}),
+        "labels": sorted({r["label"] for r in rows}),
+    })
+
+
+@app.route("/api/interp/patients", methods=["GET"])
+def interp_patients():
+    if not _interp_available:
+        return jsonify([]), 200
+    patients = interp_db.list_patients(
+        study_id=request.args.get("study_id") or None,
+        label=request.args.get("label") or None,
+        pred_class=request.args.get("pred_class") or None,
+    )
+    return jsonify(patients)
+
+
+@app.route("/api/interp/patient/<path:patient_id>", methods=["GET"])
+def interp_patient(patient_id):
+    if not _interp_available:
+        return jsonify({"error": "interpretation DB not available"}), 503
+    study_id = request.args.get("study_id", "")
+    label = request.args.get("label", "")
+    if not study_id or not label:
+        return jsonify({"error": "study_id and label query params required"}), 400
+    patient = interp_db.get_patient(patient_id, study_id, label)
+    if not patient:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(patient)
+
+
+@app.route("/api/interp/patient/<path:patient_id>/nests", methods=["GET"])
+def interp_patient_nests(patient_id):
+    if not _interp_available:
+        return jsonify([]), 200
+    study_id = request.args.get("study_id", "")
+    label = request.args.get("label", "")
+    if not study_id or not label:
+        return jsonify({"error": "study_id and label query params required"}), 400
+    return jsonify(interp_db.get_nests(patient_id, study_id, label))
+
+
+@app.route("/api/interp/patient/<path:patient_id>/genes", methods=["GET"])
+def interp_patient_genes(patient_id):
+    if not _interp_available:
+        return jsonify([]), 200
+    study_id = request.args.get("study_id", "")
+    label = request.args.get("label", "")
+    if not study_id or not label:
+        return jsonify({"error": "study_id and label query params required"}), 400
+    nest_id = request.args.get("nest_id") or None
+    return jsonify(interp_db.get_genes(patient_id, study_id, label, nest_id))
+
+
+@app.route("/api/interp/population/nests", methods=["GET"])
+def interp_pop_nests():
+    if not _interp_available:
+        return jsonify([]), 200
+    filters, args = [], []
+    if request.args.get("study_id"):
+        filters.append("study_id = ?"); args.append(request.args["study_id"])
+    if request.args.get("label"):
+        filters.append("label = ?"); args.append(request.args["label"])
+    where = ("WHERE " + " AND ".join(filters)) if filters else ""
+    with interp_db.get_conn() as conn:
+        rows = conn.execute(f"""
+            SELECT nest_id, COUNT(*) as cnt, AVG(population_rlipp) as avg_rlipp
+            FROM patient_nests {where}
+            GROUP BY nest_id ORDER BY cnt DESC
+        """, args).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/interp/population/genes", methods=["GET"])
+def interp_pop_genes():
+    if not _interp_available:
+        return jsonify([]), 200
+    filters, args = [], []
+    if request.args.get("study_id"):
+        filters.append("study_id = ?"); args.append(request.args["study_id"])
+    if request.args.get("label"):
+        filters.append("label = ?"); args.append(request.args["label"])
+    where = ("WHERE " + " AND ".join(filters)) if filters else ""
+    with interp_db.get_conn() as conn:
+        rows = conn.execute(f"""
+            SELECT gene_name, alteration_type, COUNT(*) as cnt
+            FROM patient_genes {where}
+            GROUP BY gene_name, alteration_type ORDER BY cnt DESC LIMIT 30
+        """, args).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
 if __name__ == "__main__":
-    print("NeST-STRING proxy server running on http://localhost:5001")
+    print("NeST-VNN unified server running on http://localhost:5001")
     app.run(port=5001, debug=False)
