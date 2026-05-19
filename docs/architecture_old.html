@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CellMap-VNN Architecture — Original (Genotype Only)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #fdfdfd;
+  padding: 48px 40px 56px;
+  color: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 { font-size: 26px; font-weight: 700; color: #2563eb; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: #666; margin-bottom: 36px; }
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Boxes ── */
+.b {
+  border-radius: 10px;
+  padding: 14px 22px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  border: 2.5px solid;
+}
+.b strong { font-size: 15px; }
+.b .sub { font-size: 12px; color: #555; margin-top: 3px; }
+
+.b.input   { background: #fef3c7; border-color: #f59e0b; }
+.b.proc    { background: #dbeafe; border-color: #3b82f6; }
+.b.proc-dk { background: #bfdbfe; border-color: #2563eb; }
+.b.emb     { background: #d1fae5; border-color: #10b981; }
+.b.root    { background: #fee2e2; border-color: #ef4444; }
+.b.aux     { background: #ede9fe; border-color: #8b5cf6; font-size: 12px; }
+.b.out     { background: #fce7f3; border-color: #ec4899; }
+
+/* ── Arrow ── */
+.arr {
+  width: 2.5px;
+  height: 30px;
+  background: #94a3b8;
+  position: relative;
+}
+.arr::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid #94a3b8;
+}
+.arr.short { height: 20px; }
+
+/* ── Input row ── */
+.inputs { display: flex; gap: 12px; justify-content: center; }
+.inputs .b { min-width: 140px; padding: 12px 14px; }
+
+/* ── Horizontal row (aux + main) ── */
+.hrow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.dash {
+  width: 28px;
+  height: 0;
+  border-top: 2.5px dashed #94a3b8;
+  flex-shrink: 0;
+}
+
+.main-w { width: 420px; }
+
+/* ── Code annotation ── */
+.code-note {
+  font-size: 11px;
+  color: #888;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-top: 2px;
+}
+
+.footer {
+  margin-top: 40px;
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 600px;
+}
+</style>
+</head>
+<body>
+
+<h1>Original Architecture</h1>
+<div class="subtitle">Genotype Only &mdash; No Clinical Covariates</div>
+
+<div class="flow">
+
+  <!-- Inputs -->
+  <div class="inputs">
+    <div class="b input">Mutations<br><span class="sub">samples &times; genes</span></div>
+    <div class="b input">CN Deletions<br><span class="sub">samples &times; genes</span></div>
+    <div class="b input">CN Amplifications<br><span class="sub">samples &times; genes</span></div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b proc main-w">
+    <strong>np.dstack &rarr; Cell Features</strong>
+    <div class="sub">samples &times; genes &times; 3</div>
+    <div class="code-note">cell_features = np.dstack([mutations, cn_deletions, cn_amplifications])</div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b proc-dk main-w">
+    <strong>Per-Gene Feature Layer</strong>
+    <div class="sub">Linear(3 &rarr; 1) &rarr; tanh &rarr; BatchNorm1d(1)</div>
+    <div class="code-note">one per gene &mdash; compresses multi-omic binary features to scalar</div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b emb main-w">
+    <strong>Gene Embeddings</strong>
+    <div class="sub">scalar per gene &rarr; concatenated into gene_input vector</div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b proc main-w">
+    <strong>Direct Gene Layers</strong>
+    <div class="sub">Linear(num_genes &rarr; |annotated_genes|) per term</div>
+    <div class="code-note">weights masked by ontology gene-term annotations</div>
+  </div>
+
+  <div class="arr"></div>
+
+  <!-- Ontology + aux -->
+  <div class="hrow">
+    <div class="b aux" style="width: 160px; padding: 10px;">
+      Aux Heads<br>(per term)
+      <div class="sub">Linear(h &rarr; 1) &rarr; tanh<br>&rarr; Linear(1 &rarr; 1)</div>
+    </div>
+    <div class="dash"></div>
+    <div class="b proc-dk main-w">
+      <strong>Ontology Term Layers (bottom-up)</strong>
+      <div class="sub">concat(children + direct_genes) &rarr; [Dropout] &rarr; Linear &rarr; tanh &rarr; BatchNorm</div>
+      <div class="code-note">one layer per ontology term, processed leaf-to-root</div>
+    </div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b root main-w">
+    <strong>Root Hidden Embedding</strong>
+    <div class="sub">num_hiddens_genotype dimensions</div>
+  </div>
+
+  <div class="arr"></div>
+
+  <div class="b proc" style="width: 340px;">
+    <strong>Linear(num_hiddens_genotype &rarr; 1) &rarr; tanh</strong>
+    <div class="code-note">final_aux_linear_layer</div>
+  </div>
+
+  <div class="arr short"></div>
+
+  <div class="b proc" style="width: 240px;">
+    <strong>Linear(1 &rarr; 1)</strong>
+    <div class="code-note">final_linear_layer_output</div>
+  </div>
+
+  <div class="arr short"></div>
+
+  <div class="b out" style="width: 240px;">
+    <strong>Prediction (scalar)</strong>
+    <div class="sub">logits (binary) or z-score (continuous)</div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Gene features &rarr; ontology hierarchy (leaf-to-root) &rarr; root embedding &rarr; prediction.<br>
+  Every term has auxiliary output heads supervised against the same label (weighted by &alpha;).
+</div>
+
+</body>
+</html>

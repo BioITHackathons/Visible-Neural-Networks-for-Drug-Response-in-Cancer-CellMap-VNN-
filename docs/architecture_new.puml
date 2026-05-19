@@ -1,0 +1,107 @@
+@startuml CellMap-VNN New Architecture
+skinparam backgroundColor #1a1a2e
+skinparam defaultFontColor #e0e0e0
+skinparam defaultFontSize 13
+skinparam defaultFontName "Segoe UI"
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam padding 6
+
+skinparam rectangle {
+  FontSize 13
+  FontColor #e0e0e0
+  StereotypeFontSize 11
+}
+
+skinparam card {
+  FontSize 13
+  RoundCorner 10
+}
+
+title <size:22><color:#a5d6a7>CellMap-VNN New Architecture</color></size>\n<size:13><color:#888888>Genotype + Clinical Covariates</color></size>
+
+' ═══════════════════════════════════════
+' GENOMIC PATHWAY (purple)
+' ═══════════════════════════════════════
+
+together {
+  rectangle "<b>Mutations</b>\nS × genes" as mut #4a3f8a;line:#7c6fca
+  rectangle "<b>CN Deletions</b>\nS × genes" as cnd #4a3f8a;line:#7c6fca
+  rectangle "<b>CN Amplifications</b>\nS × genes" as cna #4a3f8a;line:#7c6fca
+}
+
+rectangle "<b>np.dstack → Cell Features</b>\n<size:11>S × genes × 3</size>" as dstack #4a3f8a;line:#7c6fca
+
+rectangle "<b>Per-Gene Feature Layer</b>\n<size:11>Linear(feature_dim → 1) → tanh → BatchNorm1d(1)</size>\n<size:10><color:#b0a8e8>one per gene</color></size>" as pergene #3d2e9e;line:#6b5bce
+
+rectangle "<b>Gene Embeddings</b>\n<size:11>scalar per gene → cat → gene_input</size>" as geneemb #1a5c3a;line:#10b981;text:#c8f0e8
+
+rectangle "<b>Direct Gene Layers</b>\n<size:11>Linear(num_genes → |annotated_genes|) per term</size>\n<size:10><color:#b0a8e8>weights masked by ontology</color></size>" as directgene #3d2e9e;line:#6b5bce
+
+rectangle "<b>Ontology Term Layers (leaf → root)</b>\n<size:11>For each term, bottom-up:</size>\n<size:11>cat(children_hidden + direct_genes)</size>\n<size:11>→ [Dropout] → Linear(in, h) → tanh → BatchNorm(h)</size>\n<size:10><color:#b0a8e8>h = num_hiddens_genotype</color></size>" as ontology #3d2e9e;line:#6b5bce
+
+rectangle "<b>Aux Head (per term)</b>\n<size:11>Linear(h → 1) → tanh → Linear(1 → 1)</size>\n<size:10><color:#b0a8e8>supervised against same label</color></size>" as aux #5a4a8a;line:#8b5cf6
+
+rectangle "<b>root_hidden</b>\n<size:11>(h)</size>" as root #3a3a4e;line:#6a6a80
+
+' ═══════════════════════════════════════
+' CLINICAL PATHWAY (teal)
+' ═══════════════════════════════════════
+
+together {
+  rectangle "<b>Clinical Features</b>\n<size:11>cov_* columns from training_data.txt</size>\n<size:11>Mutation count | z-score | FGA</size>\n<size:11>Sample type | Met site | ...</size>\n<size:11>(S × clin_dim)</size>" as clinfeat #1a5c52;line:#2d8a7a;text:#c8f0e8
+}
+
+rectangle "<b>Clinical Encoder</b>\n<size:11>Linear(clin_dim → h) → tanh → BatchNorm(h)</size>\n<size:10><color:#8ed8ca>projects to same dim as root_hidden</color></size>" as clinenc #145c52;line:#2d8a7a;text:#c8f0e8
+
+rectangle "<b>clinical_h</b>\n<size:11>(h)</size>" as clinh #3a3a4e;line:#6a6a80
+
+' ═══════════════════════════════════════
+' MERGED PATHWAY (brown/orange)
+' ═══════════════════════════════════════
+
+rectangle "<b>torch.cat([root_hidden, clinical_h], dim=1)</b>\n<size:11>(2h)</size>" as concat #7a4a1a;line:#c0783a;text:#ffe0c0
+
+rectangle "<b>Linear(2h → 1) → tanh</b>\n<size:10><color:#c0783a>final_aux_linear_layer</color></size>" as final1 #7a4a1a;line:#c0783a;text:#ffe0c0
+
+rectangle "<b>Linear(1 → 1)</b>\n<size:10><color:#c0783a>final_linear_layer_output</color></size>" as final2 #7a4a1a;line:#c0783a;text:#ffe0c0
+
+rectangle "<b>Prediction</b>\n<size:11>logits (binary) or z-score (continuous)</size>" as pred #7a4a1a;line:#c0783a;text:#ffe0c0
+
+' ═══════════════════════════════════════
+' CONNECTIONS
+' ═══════════════════════════════════════
+
+' Genomic path
+mut -[#7c6fca]-> dstack
+cnd -[#7c6fca]-> dstack
+cna -[#7c6fca]-> dstack
+dstack -[#7c6fca]-> pergene
+pergene -[#7c6fca]-> geneemb
+geneemb -[#7c6fca]-> directgene
+directgene -[#7c6fca]-> ontology
+ontology -[#7c6fca]-> root
+
+' Aux branch
+ontology -[#8b5cf6,dashed]-> aux : <size:10><color:#8b5cf6>each term</color></size>
+
+' Clinical path
+clinfeat -[#2d8a7a]-> clinenc
+clinenc -[#2d8a7a]-> clinh
+
+' Merge
+root -[#c0783a]-> concat
+clinh -[#c0783a]-> concat
+concat -[#c0783a]-> final1
+final1 -[#c0783a]-> final2
+final2 -[#c0783a]-> pred
+
+legend right
+  |<back:#4a3f8a>  </back>| Genomic pathway |
+  |<back:#1a5c52>  </back>| Clinical pathway |
+  |<back:#7a4a1a>  </back>| Merged pathway |
+end legend
+
+footer <size:11><color:#666666>Clinical covariates are projected through a learned encoder Linear(clin_dim → h) → tanh → BatchNorm\nto match root_hidden dimensionality before concatenation. Both paths produce h-dim vectors → cat → (2h) → prediction.</color></size>
+
+@enduml

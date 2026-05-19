@@ -40,8 +40,13 @@ class DrugCellNN(nn.Module):
 
 		self.num_clinical_features = getattr(data_wrapper, 'num_clinical_features', 0)
 
-		# add module for final layer; widen input if clinical covariates are present
-		final_in = data_wrapper.num_hiddens_genotype + self.num_clinical_features
+		# Clinical encoder: project raw covariates into the same space as root_hidden
+		if self.num_clinical_features > 0:
+			self.add_module('clinical_linear_layer', nn.Linear(self.num_clinical_features, self.num_hiddens_genotype))
+			self.add_module('clinical_batchnorm_layer', nn.BatchNorm1d(self.num_hiddens_genotype, eps=1e-3))
+
+		# Final layer: 2h when clinical features present (root_hidden + clinical_h), else h
+		final_in = self.num_hiddens_genotype * 2 if self.num_clinical_features > 0 else self.num_hiddens_genotype
 		self.add_module('final_aux_linear_layer', nn.Linear(final_in, 1))
 		self.add_module('final_linear_layer_output', nn.Linear(1, 1))
 
@@ -165,7 +170,9 @@ class DrugCellNN(nn.Module):
 
 		final_input = hidden_embeddings_map[self.root]
 		if clinical is not None:
-			final_input = torch.cat([final_input, clinical], dim=1)
+			clinical_h = torch.tanh(self._modules['clinical_linear_layer'](clinical))
+			clinical_h = self._modules['clinical_batchnorm_layer'](clinical_h)
+			final_input = torch.cat([final_input, clinical_h], dim=1)
 		aux_layer_out = torch.tanh(self._modules['final_aux_linear_layer'](final_input))
 		aux_out_map['final'] = self._modules['final_linear_layer_output'](aux_layer_out)
 

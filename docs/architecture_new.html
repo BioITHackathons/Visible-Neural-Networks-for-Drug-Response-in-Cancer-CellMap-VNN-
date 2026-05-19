@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CellMap-VNN — New Architecture</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 40px 60px;
+}
+
+h1 { font-size: 28px; font-weight: 700; color: #a5d6a7; margin-bottom: 6px; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 40px; }
+
+.canvas {
+  position: relative;
+  width: 900px;
+  min-height: 1200px;
+}
+
+.node {
+  position: absolute;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 16px 24px;
+}
+.node .dim {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.6);
+  margin-top: 4px;
+}
+.node .detail {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  margin-top: 6px;
+  line-height: 1.3;
+}
+
+.genomic-input {
+  background: #4a3f8a;
+  border: 2px solid #7c6fca;
+  color: #e0d8ff;
+}
+.genomic-core {
+  background: #3d2e9e;
+  border: 2px solid #6b5bce;
+  color: #fff;
+}
+.genomic-embed {
+  background: #3a3a4e;
+  border: 2px solid #6a6a80;
+  color: #ccc;
+}
+.clinical-input {
+  background: #1a5c52;
+  border: 2px solid #2d8a7a;
+  color: #c8f0e8;
+}
+.clinical-core {
+  background: #145c52;
+  border: 2px solid #2d8a7a;
+  color: #c8f0e8;
+}
+.clinical-embed {
+  background: #3a3a4e;
+  border: 2px solid #6a6a80;
+  color: #ccc;
+}
+.merge {
+  background: #7a4a1a;
+  border: 2px solid #c0783a;
+  color: #ffe0c0;
+}
+.prediction {
+  background: #7a4a1a;
+  border: 2px solid #c0783a;
+  color: #ffe0c0;
+  border-radius: 24px;
+}
+
+.dim-label {
+  position: absolute;
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+}
+
+svg.lines {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+svg.lines line, svg.lines path {
+  stroke-width: 2.5;
+  fill: none;
+}
+.line-genomic { stroke: #7c6fca; }
+.line-clinical { stroke: #2d8a7a; }
+.line-merge { stroke: #c0783a; }
+
+svg.lines marker path { stroke: none; }
+
+.footer {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.7;
+  max-width: 750px;
+}
+.footer .purple { color: #9b8fdf; font-weight: 600; }
+.footer .teal { color: #5ec4b6; font-weight: 600; }
+.footer .orange { color: #e09050; font-weight: 600; }
+
+.legend {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #aaa;
+}
+.legend-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<h1>New Architecture</h1>
+<div class="subtitle">Genotype + Clinical Covariates</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#3d2e9e; border:1px solid #6b5bce;"></div>Genomic pathway</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1a5c52; border:1px solid #2d8a7a;"></div>Clinical pathway</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#7a4a1a; border:1px solid #c0783a;"></div>Merged pathway</div>
+</div>
+
+<div class="canvas">
+
+  <svg class="lines" viewBox="0 0 900 1200" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <marker id="arr-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6" fill="#7c6fca"/>
+      </marker>
+      <marker id="arr-c" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6" fill="#2d8a7a"/>
+      </marker>
+      <marker id="arr-m" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6" fill="#c0783a"/>
+      </marker>
+    </defs>
+
+    <!-- Genomic: inputs merge down -->
+    <line x1="100" y1="72" x2="100" y2="110" class="line-genomic"/>
+    <line x1="250" y1="72" x2="250" y2="110" class="line-genomic"/>
+    <line x1="400" y1="72" x2="400" y2="110" class="line-genomic"/>
+    <line x1="100" y1="110" x2="250" y2="130" class="line-genomic"/>
+    <line x1="400" y1="110" x2="250" y2="130" class="line-genomic"/>
+    <line x1="250" y1="130" x2="250" y2="160" class="line-genomic" marker-end="url(#arr-g)"/>
+
+    <!-- DrugCellNN → root_hidden -->
+    <line x1="250" y1="340" x2="250" y2="410" class="line-genomic" marker-end="url(#arr-g)"/>
+
+    <!-- Clinical: inputs → encoder -->
+    <line x1="700" y1="290" x2="700" y2="360" class="line-clinical" marker-end="url(#arr-c)"/>
+
+    <!-- Encoder → clinical_h -->
+    <line x1="700" y1="480" x2="700" y2="540" class="line-clinical" marker-end="url(#arr-c)"/>
+
+    <!-- Merge lines: root_hidden → cat -->
+    <path d="M250,510 L250,650 L420,730" class="line-merge" marker-end="url(#arr-m)"/>
+    <!-- clinical_h → cat -->
+    <path d="M700,620 L700,690 L530,730" class="line-merge" marker-end="url(#arr-m)"/>
+
+    <!-- cat → Linear -->
+    <line x1="470" y1="790" x2="470" y2="850" class="line-merge" marker-end="url(#arr-m)"/>
+
+    <!-- Linear → Linear(1,1) -->
+    <line x1="470" y1="930" x2="470" y2="980" class="line-merge" marker-end="url(#arr-m)"/>
+
+    <!-- Linear(1,1) → Prediction -->
+    <line x1="470" y1="1050" x2="470" y2="1100" class="line-merge" marker-end="url(#arr-m)"/>
+  </svg>
+
+  <!-- ════════ GENOMIC PATH ════════ -->
+
+  <div class="node genomic-input" style="left:30px; top:0; width:140px; padding:12px;">
+    Mutations
+    <div class="dim">S &times; genes</div>
+  </div>
+  <div class="node genomic-input" style="left:185px; top:0; width:140px; padding:12px;">
+    CN Deletions
+    <div class="dim">S &times; genes</div>
+  </div>
+  <div class="node genomic-input" style="left:340px; top:0; width:140px; padding:12px;">
+    CN Amplif.
+    <div class="dim">S &times; genes</div>
+  </div>
+
+  <div class="node genomic-core" style="left:110px; top:160px; width:280px; padding:20px 24px;">
+    <div style="font-size:20px; font-weight:700;">DrugCellNN</div>
+    <div style="font-size:13px; color:#b0a8e8; margin-top:6px;">Ontology network</div>
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.2); margin:10px 0;">
+    <div style="font-size:12px; color:rgba(255,255,255,0.5);">
+      Per-gene encoding &rarr; Direct gene layers<br>
+      &rarr; Ontology terms (leaves &rarr; root)<br>
+      + Aux heads per term
+    </div>
+  </div>
+
+  <div class="node genomic-embed" style="left:155px; top:420px; width:190px;">
+    <div style="font-size:18px;">root_hidden</div>
+  </div>
+  <div class="dim-label" style="left:250px; top:480px;">(h)</div>
+
+  <!-- ════════ CLINICAL PATH ════════ -->
+
+  <div class="node clinical-input" style="left:600px; top:0; width:200px; padding:14px 16px;">
+    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:6px;">Clinical features</div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="background:rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; font-size:13px;">Mutation count</div>
+      <div style="background:rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; font-size:13px;">z-score</div>
+      <div style="background:rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; font-size:13px;">FGA</div>
+      <div style="background:rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; font-size:13px;">Sample type</div>
+      <div style="background:rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; font-size:13px;">Met site</div>
+    </div>
+    <div class="dim" style="margin-top:8px;">(S &times; clin_dim)</div>
+  </div>
+
+  <div class="node clinical-core" style="left:600px; top:370px; width:200px; padding:16px;">
+    <div style="font-size:16px; font-weight:700;">Clinical encoder</div>
+    <div style="font-size:13px; color:#8ed8ca; margin-top:6px;">Linear(clin_dim, h)</div>
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.15); margin:8px 0;">
+    <div style="font-size:13px; color:rgba(255,255,255,0.5);">tanh &rarr; BatchNorm</div>
+  </div>
+
+  <div class="node clinical-embed" style="left:610px; top:550px; width:180px;">
+    <div style="font-size:18px;">clinical_h</div>
+  </div>
+  <div class="dim-label" style="left:700px; top:610px;">(h)</div>
+
+  <!-- ════════ MERGED PATH ════════ -->
+
+  <div class="node merge" style="left:350px; top:730px; width:240px;">
+    <div style="font-size:18px;">cat(dim=1)</div>
+  </div>
+  <div class="dim-label" style="left:500px; top:790px;">(2h)</div>
+
+  <div class="node merge" style="left:340px; top:860px; width:260px;">
+    <div style="font-size:16px;">Linear(2h, 1)</div>
+    <div class="dim">&rarr; tanh</div>
+  </div>
+
+  <div class="node merge" style="left:370px; top:990px; width:200px;">
+    <div style="font-size:16px;">Linear(1, 1)</div>
+  </div>
+
+  <div class="node prediction" style="left:350px; top:1110px; width:240px; padding:18px;">
+    <div style="font-size:20px; font-weight:700;">Prediction</div>
+  </div>
+
+</div>
+
+<div class="footer">
+  The two pathways are color-coded:
+  <span class="purple">purple</span> for the genomic flow (unchanged),
+  <span class="teal">teal</span> for the clinical covariate encoder, and
+  <span class="orange">brown</span> for the merged prediction head.<br><br>
+  Clinical covariates (cov_* columns in training_data.txt) are projected through a learned encoder
+  <strong>Linear(clin_dim &rarr; h) &rarr; tanh &rarr; BatchNorm</strong> to match the root hidden
+  embedding's dimensionality before concatenation. Both halves of the concat are h-dimensional,
+  giving the final layer a (2h)-dimensional input.
+</div>
+
+</body>
+</html>
