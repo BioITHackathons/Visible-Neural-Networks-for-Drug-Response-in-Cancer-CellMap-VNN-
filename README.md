@@ -25,6 +25,7 @@ This repo was built at the Bio-IT World hackathon. On top of [idekerlab/nest_vnn
 
 ## Contents
 
+- [System overview](#system-overview)
 - [Repository layout](#repository-layout)
 - [Environment setup](#environment-setup)
 - [Running the pipeline](#running-the-pipeline)
@@ -33,6 +34,78 @@ This repo was built at the Bio-IT World hackathon. On top of [idekerlab/nest_vnn
 - [Reference run](#reference-run)
 - [LLM interpretation](#llm-interpretation)
 - [Web app](#web-app)
+
+## System overview
+
+The project has four parts that hand data to each other through files:
+
+1. **Data pipeline.** Pulls a study from cBioPortal and a hierarchy from NDEx, and turns them into model inputs.
+2. **Model.** Trains the ontology-shaped network, predicts, and records every system's and gene's hidden state.
+3. **Explainability and interpretation.**
+   - Scores each system and gene for the whole cohort and for each patient.
+   - Asks an LLM to write a summary per patient, which is stored in SQLite.
+4. **Web app.** Serves the results in three tabs, and calls NDEx, STRING and MyGene.info live.
+
+```mermaid
+flowchart TD
+    subgraph EXT["External sources"]
+        CBIO[("cBioPortal API<br/>mutations, CNA, fusions, clinical")]
+        NDEX[("NDEx<br/>NeST hierarchy")]
+    end
+
+    subgraph PIPE["1 · Data pipeline (scripts/)"]
+        DL["cbioport_download.py"]
+        RAW[/"cbioportal_output/"/]
+        TR["cbioport_transform.py<br/>endpoints · gene panel · pruning · covariates"]
+        INP[/"nest_vnn_input/<br/>ontology, gene and sample maps,<br/>feature matrices, training_data.txt"/]
+    end
+
+    subgraph MODEL["2 · Model (src/)"]
+        TRAIN["train.py<br/>DrugCellNN + VNNTrainer<br/>or OptunaNNTrainer"]
+        CKPT[/"model/<br/>model_final.pt, std.txt"/]
+        PRED["predict.py"]
+        MET[/"metrics/<br/>predictions, hidden states"/]
+        MLF[("MLflow<br/>mlflow.db, mlruns/")]
+    end
+
+    subgraph EXPL["3 · Explainability and interpretation"]
+        ANN["annotate_hierarchy.py<br/>RLIPP, gene scores,<br/>logic gates, per-patient scores"]
+        ANNO[/"annotation/<br/>score tables,<br/>hierarchy_viz.html, patient_viz.html"/]
+        LLMP["interpretation/run_pipeline.py<br/>extract → batch → LLM → parse"]
+        LLM(["AWS Bedrock<br/>or OpenAI fallback"])
+        CFDE[/"CFDE drug lookup"/]
+        DB[("SQLite<br/>nest_vnn_interpretations.db")]
+        ST["Streamlit viewer<br/>interpretation/app.py"]
+    end
+
+    subgraph WEB["4 · Web app (visualization/BioiThackCellMAP)"]
+        SRV["Flask server.py<br/>patient_loader + API proxies"]
+        UI["Browser tabs:<br/>Dashboard · LLM Interpretation ·<br/>NeST-STRING Explorer"]
+        LIVE[("NDEx, STRING,<br/>MyGene.info")]
+    end
+
+    CBIO --> DL --> RAW --> TR
+    NDEX --> TR
+    TR --> INP
+    INP --> TRAIN --> CKPT --> PRED
+    INP --> PRED
+    PRED --> MET --> ANN
+    TRAIN -.-> MLF
+    PRED -.-> MLF
+    ANN --> ANNO
+    ANNO --> LLMP
+    LLMP <--> LLM
+    CFDE --> LLMP
+    LLMP --> DB --> ST
+    ANNO -->|patient_viz.html| SRV
+    INP -->|alteration matrices| SRV
+    DB --> SRV
+    CFDE --> SRV
+    SRV <-->|live lookups| LIVE
+    SRV --> UI
+```
+
+The live demo runs only the web app, on an AWS Lightsail VM: CloudFront (HTTPS) → nginx → gunicorn → `server.py`. The data it serves is the bundled reference run and interpretation database; nothing is trained on the server.
 
 ## Repository layout
 
