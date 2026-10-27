@@ -213,8 +213,9 @@ The repo was developed and validated against this study. Key numbers for sanity-
 
 **Training (CPU run, 200 epoch budget)**
 - Params: batchsize=512, lr=0.001, alpha=0.3, patience=30, dropout=0.3, genotype_hiddens=4, task=binary
-- Converged: early stopping at epoch 150 (val loss plateaued ~epoch 120)
-- Test accuracy: **0.6794**
+- Shipped model is MLflow run `7e4613e8`: best validation loss at epoch 142, early stop at epoch 172
+- Validation accuracy (random 20% hold-out): **0.693**
+- Accuracy over all 3777 samples from `predict.py`: 0.712. This includes training samples, so it is not a test score. There is no held-out test split; `predict.py` logs whatever file it is given as `test_accuracy`.
 
 **Annotation**
 - 103 terms × 407 genes × 3777 samples processed
